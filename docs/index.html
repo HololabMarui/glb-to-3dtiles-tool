@@ -149,12 +149,53 @@
     @media (max-width: 900px) {
       .grid, .row, .row-3 { grid-template-columns: 1fr; }
     }
+    .hero {
+  position: relative;
+  margin: 0 0 24px;
+  min-height: 240px;
+  border-radius: 24px;
+  overflow: hidden;
+  background-image:
+    linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
+    url("./images/header-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+}
+
+.hero-overlay {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  min-height: 240px;
+  padding: 28px 24px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 34px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+
+.hero .lead {
+  margin: 0;
+  max-width: 760px;
+  color: #eef4ff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
   </style>
 </head>
 <body>
   <div class="wrap">
+<div class="hero">
+  <div class="hero-overlay">
     <h1>GLB to 3D Tiles Helper</h1>
     <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
+  </div>
+</div>
 
     <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
       <button id="tab-guide" type="button">環境構築ガイド</button>
