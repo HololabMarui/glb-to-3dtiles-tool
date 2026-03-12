@@ -151,9 +151,59 @@
 <body>
   <div class="wrap">
     <h1>GLB to 3D Tiles Helper</h1>
-    <p class="lead">GLB→B3DM変換用コマンドと、位置情報つき <code>tileset.json</code> を生成する GitHub Pages 向けの補助ページです。</p>
+    <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
 
-    <div class="grid">
+    <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
+      <button id="tab-guide" class="active" type="button">環境構築ガイド</button>
+      <button id="tab-tool" type="button">変換ツール</button>
+    </div>
+
+    <section id="page-guide" class="stack">
+      <section class="card">
+        <h2>概要</h2>
+        <p class="note">このツールは、<code>3d-tiles-tools</code> を使って <code>GLB → B3DM</code> と <code>tileset.json</code> 生成を支援するためのものです。GitHub Pages 上では npm コマンドの実行自体は行わず、<span class="ok">手順確認・入力補助・コマンド生成</span> を担当します。</p>
+      </section>
+
+      <section class="card">
+        <h2>前提条件</h2>
+        <div class="note">
+          <div>・Node.js / npm がインストール済みであること</div>
+          <div>・作業フォルダに変換対象の <code>.glb</code> があること</div>
+          <div>・作業フォルダで <code>3d-tiles-tools</code> が使えること</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>セットアップ手順</h2>
+        <pre>npm install 3d-tiles-tools
+npx 3d-tiles-tools --help</pre>
+        <p class="note">上記コマンドが通れば、変換ツールページで生成したコマンドをそのまま実行できます。</p>
+      </section>
+
+      <section class="card">
+        <h2>基本手順</h2>
+        <div class="note">
+          <div>1. Node.js / npm をインストール</div>
+          <div>2. 作業フォルダで <code>npm install 3d-tiles-tools</code> を実行</div>
+          <div>3. 変換ツールページで入力値を設定してコマンドを生成</div>
+          <div>4. <code>glbToB3dm</code> で B3DM 作成</div>
+          <div>5. <code>updateAlignment</code> で alignment 補正</div>
+          <div>6. <code>createTilesetJson</code> で位置つき tileset を作成</div>
+          <div>7. torinome では <code>tileset.json</code> を読み込む</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>注意事項</h2>
+        <div class="note">
+          <div>・<span class="ok">緯度・経度・高さ・向き（Heading / Pitch / Roll）</span> は、このページが自動計算するものではありません。</div>
+          <div>・これらの値は、現地確認、既存GIS、ビューア上の目視調整、外部情報などをもとに <span class="ok">手動で設定・調整</span> してください。</div>
+          <div>・特に高さと向きは、モデル原点や地形条件によってズレやすいため、torinome 上で確認しながら再調整する前提です。</div>
+        </div>
+      </section>
+    </section>
+
+    <section id="page-tool" class="grid" style="display:none;">
       <section class="card">
         <h2>入力</h2>
 
@@ -217,7 +267,7 @@
         <div class="row">
           <div>
             <label for="workDir">作業フォルダの絶対パス（任意）</label>
-            <input id="workDir" placeholder="例: /Users/name/Desktop/GLB_to_3DTiles または C:\\work\\GLB_to_3DTiles" />
+            <input id="workDir" placeholder="例: /Users/name/Desktop/GLB_to_3DTiles または C:\work\GLB_to_3DTiles" />
           </div>
           <div>
             <label for="repoHint">メモ</label>
@@ -230,7 +280,7 @@
           <button id="downloadJsonBtn" class="ghost" type="button">tileset.json をダウンロード</button>
           <button id="copyBtn" class="ghost" type="button">コマンドをコピー</button>
         </div>
-        <p class="note">GitHub Pages 上では npm 実行はできません。ここではコマンド生成と <code>tileset.json</code> 出力を行います。</p>
+        <p class="note">このページは <span class="ok">手動で決めた位置・向き・高さ</span> をもとにコマンドと <code>tileset.json</code> を生成します。GitHub Pages 上では npm 実行はできません。</p>
       </section>
 
       <section class="stack">
@@ -246,16 +296,15 @@
         </section>
 
         <section class="card">
-          <h2>使い方メモ</h2>
+          <h2>ツール利用時の注意</h2>
           <div class="note">
-            <div>1. <span class="ok">glbToB3dm</span> で B3DM を作成</div>
-            <div>2. <span class="ok">updateAlignment</span> で alignment 補正</div>
-            <div>3. <span class="ok">createTilesetJson</span> で位置つき tileset を作成</div>
-            <div>4. torinome では <code>tileset.json</code> を読み込みます</div>
+            <div>・位置、向き、高さは自動計算ではありません</div>
+            <div>・モデルの中心や原点によって見え方が変わる場合があります</div>
+            <div>・torinome 上で確認しながら数値を再調整してください</div>
           </div>
         </section>
       </section>
-    </div>
+    </section>
   </div>
 
   <script>
@@ -268,10 +317,28 @@
       workDir: el('workDir')
     };
 
+    function setMainTab(tab) {
+      const guideBtn = el('tab-guide');
+      const toolBtn = el('tab-tool');
+      const guidePage = el('page-guide');
+      const toolPage = el('page-tool');
+      if (tab === 'guide') {
+        guideBtn.classList.add('active');
+        toolBtn.classList.remove('active');
+        guidePage.style.display = '';
+        toolPage.style.display = 'none';
+      } else {
+        toolBtn.classList.add('active');
+        guideBtn.classList.remove('active');
+        guidePage.style.display = 'none';
+        toolPage.style.display = 'grid';
+      }
+    }
+
     function joinPath(dir, name) {
       if (!dir) return './' + name;
-      const sep = currentOs === 'win' ? '\\' : '/';
-      const trimmed = dir.endsWith('/') || dir.endsWith('\\') ? dir.slice(0, -1) : dir;
+      const sep = currentOs === 'win' ? '\' : '/';
+      const trimmed = dir.endsWith('/') || dir.endsWith('\') ? dir.slice(0, -1) : dir;
       return trimmed + sep + name;
     }
 
@@ -285,9 +352,7 @@
         geometricError: 512,
         root: {
           boundingVolume: {
-            region: [
-              0, 0, 0, 0, 0, 1000
-            ]
+            region: [0, 0, 0, 0, 0, 1000]
           },
           geometricError: 0,
           refine: 'ADD',
@@ -333,18 +398,38 @@
       if (currentOs === 'win') {
         return [
           `mkdir ${outDir}`,
-          `npx 3d-tiles-tools glbToB3dm ^\n  -i ${glbPath} ^\n  -o ${rawB3dmPath}`,
-          `npx 3d-tiles-tools updateAlignment ^\n  -i ${rawB3dmPath} ^\n  -o ${alignedB3dmPath}`,
-          `npx 3d-tiles-tools createTilesetJson ^\n  -i ${alignedB3dmPath} ^\n  -o ${tilesetPath} ^\n  --cartographicPositionDegrees ${lon} ${lat} ${height} ^\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-        ].join('\n\n');
+          `npx 3d-tiles-tools glbToB3dm ^
+  -i ${glbPath} ^
+  -o ${rawB3dmPath}`,
+          `npx 3d-tiles-tools updateAlignment ^
+  -i ${rawB3dmPath} ^
+  -o ${alignedB3dmPath}`,
+          `npx 3d-tiles-tools createTilesetJson ^
+  -i ${alignedB3dmPath} ^
+  -o ${tilesetPath} ^
+  --cartographicPositionDegrees ${lon} ${lat} ${height} ^
+  --rotationDegrees ${heading} ${pitch} ${roll}`
+        ].join('
+
+');
       }
 
       return [
         `mkdir -p ${outDir}`,
-        `npx 3d-tiles-tools glbToB3dm \\\n  -i ${glbPath} \\\n  -o ${rawB3dmPath}`,
-        `npx 3d-tiles-tools updateAlignment \\\n  -i ${rawB3dmPath} \\\n  -o ${alignedB3dmPath}`,
-        `npx 3d-tiles-tools createTilesetJson \\\n  -i ${alignedB3dmPath} \\\n  -o ${tilesetPath} \\\n  --cartographicPositionDegrees ${lon} ${lat} ${height} \\\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-      ].join('\n\n');
+        `npx 3d-tiles-tools glbToB3dm \
+  -i ${glbPath} \
+  -o ${rawB3dmPath}`,
+        `npx 3d-tiles-tools updateAlignment \
+  -i ${rawB3dmPath} \
+  -o ${alignedB3dmPath}`,
+        `npx 3d-tiles-tools createTilesetJson \
+  -i ${alignedB3dmPath} \
+  -o ${tilesetPath} \
+  --cartographicPositionDegrees ${lon} ${lat} ${height} \
+  --rotationDegrees ${heading} ${pitch} ${roll}`
+      ].join('
+
+');
     }
 
     function refresh() {
@@ -370,6 +455,9 @@
       }
     }
 
+    el('tab-guide').addEventListener('click', () => setMainTab('guide'));
+    el('tab-tool').addEventListener('click', () => setMainTab('tool'));
+
     el('os-mac').addEventListener('click', () => {
       currentOs = 'mac';
       el('os-mac').classList.add('active');
@@ -389,6 +477,7 @@
     el('copyBtn').addEventListener('click', copyCommands);
 
     Object.values(fields).forEach((input) => input.addEventListener('input', refresh));
+    setMainTab('guide');
     refresh();
   </script>
 </body>
