@@ -143,6 +143,9 @@
       background: var(--accent);
       color: #08101f;
     }
+    code {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
     @media (max-width: 900px) {
       .grid, .row, .row-3 { grid-template-columns: 1fr; }
     }
@@ -154,8 +157,8 @@
     <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
 
     <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
-      <button id="tab-guide" class="active" type="button">環境構築ガイド</button>
-      <button id="tab-tool" type="button">変換ツール</button>
+      <button id="tab-guide" type="button">環境構築ガイド</button>
+      <button id="tab-tool" class="active" type="button">変換ツール</button>
     </div>
 
     <section id="page-guide" class="stack">
@@ -308,37 +311,46 @@ npx 3d-tiles-tools --help</pre>
   </div>
 
   <script>
-    let currentOs = 'mac';
+    let currentOs = "mac";
 
     const el = (id) => document.getElementById(id);
     const fields = {
-      glbName: el('glbName'), outDir: el('outDir'), b3dmName: el('b3dmName'), tilesetName: el('tilesetName'),
-      lon: el('lon'), lat: el('lat'), height: el('height'), heading: el('heading'), pitch: el('pitch'), roll: el('roll'),
-      workDir: el('workDir')
+      glbName: el("glbName"),
+      outDir: el("outDir"),
+      b3dmName: el("b3dmName"),
+      tilesetName: el("tilesetName"),
+      lon: el("lon"),
+      lat: el("lat"),
+      height: el("height"),
+      heading: el("heading"),
+      pitch: el("pitch"),
+      roll: el("roll"),
+      workDir: el("workDir")
     };
 
     function setMainTab(tab) {
-      const guideBtn = el('tab-guide');
-      const toolBtn = el('tab-tool');
-      const guidePage = el('page-guide');
-      const toolPage = el('page-tool');
-      if (tab === 'guide') {
-        guideBtn.classList.add('active');
-        toolBtn.classList.remove('active');
-        guidePage.style.display = '';
-        toolPage.style.display = 'none';
+      const guideBtn = el("tab-guide");
+      const toolBtn = el("tab-tool");
+      const guidePage = el("page-guide");
+      const toolPage = el("page-tool");
+
+      if (tab === "guide") {
+        guideBtn.classList.add("active");
+        toolBtn.classList.remove("active");
+        guidePage.style.display = "";
+        toolPage.style.display = "none";
       } else {
-        toolBtn.classList.add('active');
-        guideBtn.classList.remove('active');
-        guidePage.style.display = 'none';
-        toolPage.style.display = 'grid';
+        toolBtn.classList.add("active");
+        guideBtn.classList.remove("active");
+        guidePage.style.display = "none";
+        toolPage.style.display = "grid";
       }
     }
 
     function joinPath(dir, name) {
-      if (!dir) return './' + name;
-      const sep = currentOs === 'win' ? '\' : '/';
-      const trimmed = dir.endsWith('/') || dir.endsWith('\') ? dir.slice(0, -1) : dir;
+      if (!dir) return "./" + name;
+      const sep = currentOs === "win" ? "\\" : "/";
+      const trimmed = dir.endsWith("/") || dir.endsWith("\\") ? dir.slice(0, -1) : dir;
       return trimmed + sep + name;
     }
 
@@ -348,14 +360,14 @@ npx 3d-tiles-tools --help</pre>
 
     function buildTilesetObject() {
       return {
-        asset: { version: '1.1' },
+        asset: { version: "1.1" },
         geometricError: 512,
         root: {
           boundingVolume: {
             region: [0, 0, 0, 0, 0, 1000]
           },
           geometricError: 0,
-          refine: 'ADD',
+          refine: "ADD",
           content: {
             uri: fields.b3dmName.value.trim()
           },
@@ -378,7 +390,7 @@ npx 3d-tiles-tools --help</pre>
     function buildCommands() {
       const glb = fields.glbName.value.trim();
       const outDir = fields.outDir.value.trim();
-      const rawB3dm = fields.b3dmName.value.trim().replace(/_aligned\.b3dm$/i, '.b3dm');
+      const rawB3dm = fields.b3dmName.value.trim().replace(/_aligned\.b3dm$/i, ".b3dm");
       const alignedB3dm = fields.b3dmName.value.trim();
       const tileset = fields.tilesetName.value.trim();
       const lon = fields.lon.value.trim();
@@ -390,94 +402,75 @@ npx 3d-tiles-tools --help</pre>
       const wd = fields.workDir.value.trim();
 
       const outDirPath = joinPath(wd, outDir);
-      const glbPath = wd ? joinPath(wd, glb) : './' + glb;
-      const rawB3dmPath = wd ? joinPath(outDirPath, rawB3dm) : './' + outDir + '/' + rawB3dm;
-      const alignedB3dmPath = wd ? joinPath(outDirPath, alignedB3dm) : './' + outDir + '/' + alignedB3dm;
-      const tilesetPath = wd ? joinPath(outDirPath, tileset) : './' + outDir + '/' + tileset;
+      const glbPath = wd ? joinPath(wd, glb) : "./" + glb;
+      const rawB3dmPath = wd ? joinPath(outDirPath, rawB3dm) : "./" + outDir + "/" + rawB3dm;
+      const alignedB3dmPath = wd ? joinPath(outDirPath, alignedB3dm) : "./" + outDir + "/" + alignedB3dm;
+      const tilesetPath = wd ? joinPath(outDirPath, tileset) : "./" + outDir + "/" + tileset;
 
-      if (currentOs === 'win') {
+      if (currentOs === "win") {
         return [
           `mkdir ${outDir}`,
-          `npx 3d-tiles-tools glbToB3dm ^
-  -i ${glbPath} ^
-  -o ${rawB3dmPath}`,
-          `npx 3d-tiles-tools updateAlignment ^
-  -i ${rawB3dmPath} ^
-  -o ${alignedB3dmPath}`,
-          `npx 3d-tiles-tools createTilesetJson ^
-  -i ${alignedB3dmPath} ^
-  -o ${tilesetPath} ^
-  --cartographicPositionDegrees ${lon} ${lat} ${height} ^
-  --rotationDegrees ${heading} ${pitch} ${roll}`
-        ].join('
-
-');
+          `npx 3d-tiles-tools glbToB3dm ^\n  -i ${glbPath} ^\n  -o ${rawB3dmPath}`,
+          `npx 3d-tiles-tools updateAlignment ^\n  -i ${rawB3dmPath} ^\n  -o ${alignedB3dmPath}`,
+          `npx 3d-tiles-tools createTilesetJson ^\n  -i ${alignedB3dmPath} ^\n  -o ${tilesetPath} ^\n  --cartographicPositionDegrees ${lon} ${lat} ${height} ^\n  --rotationDegrees ${heading} ${pitch} ${roll}`
+        ].join("\n\n");
       }
 
       return [
         `mkdir -p ${outDir}`,
-        `npx 3d-tiles-tools glbToB3dm \
-  -i ${glbPath} \
-  -o ${rawB3dmPath}`,
-        `npx 3d-tiles-tools updateAlignment \
-  -i ${rawB3dmPath} \
-  -o ${alignedB3dmPath}`,
-        `npx 3d-tiles-tools createTilesetJson \
-  -i ${alignedB3dmPath} \
-  -o ${tilesetPath} \
-  --cartographicPositionDegrees ${lon} ${lat} ${height} \
-  --rotationDegrees ${heading} ${pitch} ${roll}`
-      ].join('
-
-');
+        `npx 3d-tiles-tools glbToB3dm \\\n  -i ${glbPath} \\\n  -o ${rawB3dmPath}`,
+        `npx 3d-tiles-tools updateAlignment \\\n  -i ${rawB3dmPath} \\\n  -o ${alignedB3dmPath}`,
+        `npx 3d-tiles-tools createTilesetJson \\\n  -i ${alignedB3dmPath} \\\n  -o ${tilesetPath} \\\n  --cartographicPositionDegrees ${lon} ${lat} ${height} \\\n  --rotationDegrees ${heading} ${pitch} ${roll}`
+      ].join("\n\n");
     }
 
     function refresh() {
-      el('commands').textContent = buildCommands();
-      el('tilesetPreview').textContent = jsonStringifyPretty(buildTilesetObject());
+      el("commands").textContent = buildCommands();
+      el("tilesetPreview").textContent = jsonStringifyPretty(buildTilesetObject());
     }
 
     function downloadJson() {
-      const blob = new Blob([jsonStringifyPretty(buildTilesetObject())], { type: 'application/json' });
-      const a = document.createElement('a');
+      const blob = new Blob([jsonStringifyPretty(buildTilesetObject())], { type: "application/json" });
+      const a = document.createElement("a");
       a.href = URL.createObjectURL(blob);
-      a.download = fields.tilesetName.value.trim() || 'tileset.json';
+      a.download = fields.tilesetName.value.trim() || "tileset.json";
       a.click();
       URL.revokeObjectURL(a.href);
     }
 
     async function copyCommands() {
       try {
-        await navigator.clipboard.writeText(el('commands').textContent);
-        el('copyStatus').textContent = 'コマンドをコピーしました。';
+        await navigator.clipboard.writeText(el("commands").textContent);
+        el("copyStatus").textContent = "コマンドをコピーしました。";
       } catch {
-        el('copyStatus').textContent = 'コピーできませんでした。手動で選択してください。';
+        el("copyStatus").textContent = "コピーできませんでした。手動で選択してください。";
       }
     }
 
-    el('tab-guide').addEventListener('click', () => setMainTab('guide'));
-    el('tab-tool').addEventListener('click', () => setMainTab('tool'));
+    el("tab-guide").addEventListener("click", () => setMainTab("guide"));
+    el("tab-tool").addEventListener("click", () => setMainTab("tool"));
 
-    el('os-mac').addEventListener('click', () => {
-      currentOs = 'mac';
-      el('os-mac').classList.add('active');
-      el('os-win').classList.remove('active');
+    el("os-mac").addEventListener("click", () => {
+      currentOs = "mac";
+      el("os-mac").classList.add("active");
+      el("os-win").classList.remove("active");
       refresh();
     });
 
-    el('os-win').addEventListener('click', () => {
-      currentOs = 'win';
-      el('os-win').classList.add('active');
-      el('os-mac').classList.remove('active');
+    el("os-win").addEventListener("click", () => {
+      currentOs = "win";
+      el("os-win").classList.add("active");
+      el("os-mac").classList.remove("active");
       refresh();
     });
 
-    el('generateBtn').addEventListener('click', refresh);
-    el('downloadJsonBtn').addEventListener('click', downloadJson);
-    el('copyBtn').addEventListener('click', copyCommands);
+    el("generateBtn").addEventListener("click", refresh);
+    el("downloadJsonBtn").addEventListener("click", downloadJson);
+    el("copyBtn").addEventListener("click", copyCommands);
 
-    Object.values(fields).forEach((input) => input.addEventListener('input', refresh));
-    setMainTab('guide');
+    Object.values(fields).forEach((input) => input.addEventListener("input", refresh));
+
+    setMainTab("tool");
     refresh();
   </script>
 </body>
