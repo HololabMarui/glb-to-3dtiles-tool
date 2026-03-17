@@ -29,7 +29,7 @@
       padding: 32px 20px 48px;
     }
     h1 { margin: 0 0 8px; font-size: 32px; }
-    .lead { margin: 0; color: #eef4ff; }
+    .lead { margin: 0 0 24px; color: var(--muted); }
     .grid {
       display: grid;
       grid-template-columns: 1.2fr 1fr;
@@ -64,7 +64,7 @@
       color: var(--muted);
       margin-bottom: 6px;
     }
-    input, textarea {
+    input, select, textarea {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -84,7 +84,7 @@
       gap: 10px;
       margin-top: 8px;
     }
-    button {
+    button, .btn-link {
       border: 1px solid var(--border);
       background: var(--accent);
       color: #08101f;
@@ -92,6 +92,10 @@
       padding: 12px 16px;
       border-radius: 12px;
       cursor: pointer;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
     }
     .ghost {
       background: transparent;
@@ -142,58 +146,63 @@
     code {
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
-    .hero {
-      position: relative;
-      margin: 0 0 24px;
-      min-height: 220px;
-      border-radius: 24px;
-      overflow: hidden;
-      background-image:
-        linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
-        url("./images/header-bg.png");
-      background-size: cover;
-      background-position: center;
-      background-repeat: no-repeat;
-      border: 1px solid var(--border);
-      box-shadow: 0 10px 25px rgba(0,0,0,0.22);
-    }
-    .hero-overlay {
-      display: flex;
-      flex-direction: column;
-      justify-content: end;
-      min-height: 220px;
-      padding: 28px 24px;
-    }
-    .hero h1 {
-      margin: 0 0 8px;
-      font-size: 34px;
-      color: #ffffff;
-      text-shadow: 0 2px 10px rgba(0,0,0,0.45);
-    }
-    .hero .lead {
-      max-width: 760px;
-      text-shadow: 0 2px 8px rgba(0,0,0,0.35);
-    }
     @media (max-width: 900px) {
       .grid, .row, .row-3 { grid-template-columns: 1fr; }
     }
+    .hero {
+  position: relative;
+  margin: 0 0 24px;
+  min-height: 240px;
+  border-radius: 24px;
+  overflow: hidden;
+  background-image:
+    linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
+    url("./images/header-bg.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  border: 1px solid var(--border);
+  box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+}
+
+.hero-overlay {
+  display: flex;
+  flex-direction: column;
+  justify-content: end;
+  min-height: 240px;
+  padding: 28px 24px;
+}
+
+.hero h1 {
+  margin: 0 0 8px;
+  font-size: 44px;
+  color: #ffffff;
+  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+}
+
+.hero .lead {
+  margin: 0;
+  max-width: 790px;
+  color: #eef4ff;
+  text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+}
   </style>
 </head>
 <body>
   <div class="wrap">
-    <div class="hero">
-      <div class="hero-overlay">
-        <h1>GLB to 3D Tiles Helper</h1>
-        <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
-      </div>
-    </div>
+<div class="hero">
+  <div class="hero-overlay">
+    <h1>GLB to 3D Tiles Helper</h1>
+    <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
+  </div>
+</div>
 
     <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
       <button id="tab-guide" type="button">環境構築ガイド</button>
       <button id="tab-tool" class="active" type="button">変換ツール</button>
     </div>
 
-    <section id="page-guide" class="stack" style="display:none;">
+    <section id="page-guide" class="stack">
       <section class="card">
         <h2>概要</h2>
         <p class="note">このツールは、<code>3d-tiles-tools</code> を使って <code>GLB → B3DM</code> と <code>tileset.json</code> 生成を支援するためのものです。GitHub Pages 上では npm コマンドの実行自体は行わず、<span class="ok">手順確認・入力補助・コマンド生成</span> を担当します。</p>
@@ -212,19 +221,33 @@
         <h2>セットアップ手順</h2>
         <pre>npm install 3d-tiles-tools
 npx 3d-tiles-tools --help</pre>
+        <p class="note">上記コマンドが通れば、変換ツールページで生成したコマンドをそのまま実行できます。</p>
+      </section>
+
+      <section class="card">
+        <h2>基本手順</h2>
+        <div class="note">
+          <div>1. Node.js / npm をインストール</div>
+          <div>2. 作業フォルダで <code>npm install 3d-tiles-tools</code> を実行</div>
+          <div>3. 変換ツールページで入力値を設定してコマンドを生成</div>
+          <div>4. <code>glbToB3dm</code> で B3DM 作成</div>
+          <div>5. <code>updateAlignment</code> で alignment 補正</div>
+          <div>6. <code>createTilesetJson</code> で位置つき tileset を作成</div>
+          <div>7. torinome では <code>tileset.json</code> を読み込む</div>
+        </div>
       </section>
 
       <section class="card">
         <h2>注意事項</h2>
         <div class="note">
-          <div>・<span class="ok">緯度・経度・高さ・向き（Heading / Pitch / Roll）</span> は自動計算ではありません。</div>
-          <div>・現地確認、既存GIS、ビューア上の目視調整などをもとに <span class="ok">手動で設定・調整</span> してください。</div>
-          <div>・この簡易版では、複数GLBを <span class="ok">同じ位置・同じ向き</span> に children としてまとめます。</div>
+          <div>・<span class="ok">緯度・経度・高さ・向き（Heading / Pitch / Roll）</span> は、このページが自動計算するものではありません。</div>
+          <div>・これらの値は、現地確認、既存GIS、ビューア上の目視調整、外部情報などをもとに <span class="ok">手動で設定・調整</span> してください。</div>
+          <div>・特に高さと向きは、モデル原点や地形条件によってズレやすいため、torinome 上で確認しながら再調整する前提です。</div>
         </div>
       </section>
     </section>
 
-    <section id="page-tool" class="grid">
+    <section id="page-tool" class="grid" style="display:none;">
       <section class="card">
         <h2>入力</h2>
 
@@ -233,17 +256,21 @@ npx 3d-tiles-tools --help</pre>
           <button id="os-win" type="button">Windows</button>
         </div>
 
-        <div style="margin-bottom:12px;">
-          <label for="glbList">入力GLBファイル名（1行に1つ）</label>
-          <textarea id="glbList">building_a.glb
-building_b.glb
-building_c.glb</textarea>
+        <div class="row">
+          <div>
+            <label for="glbName">入力GLBファイル名</label>
+            <input id="glbName" value="your_model.glb" />
+          </div>
+          <div>
+            <label for="outDir">出力フォルダ名</label>
+            <input id="outDir" value="out" />
+          </div>
         </div>
 
         <div class="row">
           <div>
-            <label for="outDir">出力フォルダ名</label>
-            <input id="outDir" value="out" />
+            <label for="b3dmName">出力B3DMファイル名</label>
+            <input id="b3dmName" value="your_model_aligned.b3dm" />
           </div>
           <div>
             <label for="tilesetName">出力Tilesetファイル名</label>
@@ -297,7 +324,7 @@ building_c.glb</textarea>
           <button id="downloadJsonBtn" class="ghost" type="button">tileset.json をダウンロード</button>
           <button id="copyBtn" class="ghost" type="button">コマンドをコピー</button>
         </div>
-        <p class="note">この簡易版では、複数の GLB をそれぞれ B3DM 化し、<span class="ok">1つの tileset.json</span> に children としてまとめます。</p>
+        <p class="note">このページは <span class="ok">手動で決めた位置・向き・高さ</span> をもとにコマンドと <code>tileset.json</code> を生成します。GitHub Pages 上では npm 実行はできません。</p>
       </section>
 
       <section class="stack">
@@ -313,8 +340,12 @@ building_c.glb</textarea>
         </section>
 
         <section class="card">
-          <h2>出力B3DM一覧</h2>
-          <pre id="b3dmListPreview"></pre>
+          <h2>ツール利用時の注意</h2>
+          <div class="note">
+            <div>・位置、向き、高さは自動計算ではありません</div>
+            <div>・モデルの中心や原点によって見え方が変わる場合があります</div>
+            <div>・torinome 上で確認しながら数値を再調整してください</div>
+          </div>
         </section>
       </section>
     </section>
@@ -324,10 +355,10 @@ building_c.glb</textarea>
     let currentOs = "mac";
 
     const el = (id) => document.getElementById(id);
-
     const fields = {
-      glbList: el("glbList"),
+      glbName: el("glbName"),
       outDir: el("outDir"),
+      b3dmName: el("b3dmName"),
       tilesetName: el("tilesetName"),
       lon: el("lon"),
       lat: el("lat"),
@@ -368,34 +399,7 @@ building_c.glb</textarea>
       return JSON.stringify(obj, null, 2);
     }
 
-    function parseGlbNames() {
-      return fields.glbList.value
-        .split("\n")
-        .map(v => v.trim())
-        .filter(Boolean);
-    }
-
-    function glbToB3dmName(glbName) {
-      return glbName.replace(/\.glb$/i, "") + "_aligned.b3dm";
-    }
-
-    function glbToRawB3dmName(glbName) {
-      return glbName.replace(/\.glb$/i, "") + ".b3dm";
-    }
-
     function buildTilesetObject() {
-      const glbNames = parseGlbNames();
-      const children = glbNames.map((glb) => ({
-        boundingVolume: {
-          region: [0, 0, 0, 0, 0, 1000]
-        },
-        geometricError: 0,
-        refine: "ADD",
-        content: {
-          uri: glbToB3dmName(glb)
-        }
-      }));
-
       return {
         asset: { version: "1.1" },
         geometricError: 512,
@@ -405,6 +409,9 @@ building_c.glb</textarea>
           },
           geometricError: 0,
           refine: "ADD",
+          content: {
+            uri: fields.b3dmName.value.trim()
+          },
           transformNote: {
             cartographicPositionDegrees: [
               Number(fields.lon.value),
@@ -416,15 +423,16 @@ building_c.glb</textarea>
               Number(fields.pitch.value),
               Number(fields.roll.value)
             ]
-          },
-          children
+          }
         }
       };
     }
 
     function buildCommands() {
-      const glbNames = parseGlbNames();
+      const glb = fields.glbName.value.trim();
       const outDir = fields.outDir.value.trim();
+      const rawB3dm = fields.b3dmName.value.trim().replace(/_aligned\.b3dm$/i, ".b3dm");
+      const alignedB3dm = fields.b3dmName.value.trim();
       const tileset = fields.tilesetName.value.trim();
       const lon = fields.lon.value.trim();
       const lat = fields.lat.value.trim();
@@ -435,66 +443,31 @@ building_c.glb</textarea>
       const wd = fields.workDir.value.trim();
 
       const outDirPath = joinPath(wd, outDir);
-      const lines = [];
-
-      if (currentOs === "win") {
-        lines.push(`mkdir ${outDir}`);
-      } else {
-        lines.push(`mkdir -p ${outDir}`);
-      }
-
-      glbNames.forEach((glb) => {
-        const glbPath = wd ? joinPath(wd, glb) : "./" + glb;
-        const rawB3dm = glbToRawB3dmName(glb);
-        const alignedB3dm = glbToB3dmName(glb);
-        const rawB3dmPath = wd ? joinPath(outDirPath, rawB3dm) : "./" + outDir + "/" + rawB3dm;
-        const alignedB3dmPath = wd ? joinPath(outDirPath, alignedB3dm) : "./" + outDir + "/" + alignedB3dm;
-
-        if (currentOs === "win") {
-          lines.push(
-            `npx 3d-tiles-tools glbToB3dm ^\n  -i ${glbPath} ^\n  -o ${rawB3dmPath}`
-          );
-          lines.push(
-            `npx 3d-tiles-tools updateAlignment ^\n  -i ${rawB3dmPath} ^\n  -o ${alignedB3dmPath}`
-          );
-        } else {
-          lines.push(
-            `npx 3d-tiles-tools glbToB3dm \\\n  -i ${glbPath} \\\n  -o ${rawB3dmPath}`
-          );
-          lines.push(
-            `npx 3d-tiles-tools updateAlignment \\\n  -i ${rawB3dmPath} \\\n  -o ${alignedB3dmPath}`
-          );
-        }
-      });
-
-      const firstAligned = glbNames.length ? glbToB3dmName(glbNames[0]) : "your_model_aligned.b3dm";
-      const firstAlignedPath = wd ? joinPath(outDirPath, firstAligned) : "./" + outDir + "/" + firstAligned;
+      const glbPath = wd ? joinPath(wd, glb) : "./" + glb;
+      const rawB3dmPath = wd ? joinPath(outDirPath, rawB3dm) : "./" + outDir + "/" + rawB3dm;
+      const alignedB3dmPath = wd ? joinPath(outDirPath, alignedB3dm) : "./" + outDir + "/" + alignedB3dm;
       const tilesetPath = wd ? joinPath(outDirPath, tileset) : "./" + outDir + "/" + tileset;
 
       if (currentOs === "win") {
-        lines.push(
-          `npx 3d-tiles-tools createTilesetJson ^\n  -i ${firstAlignedPath} ^\n  -o ${tilesetPath} ^\n  --cartographicPositionDegrees ${lon} ${lat} ${height} ^\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-        );
-        lines.push(`REM createTilesetJson で作成後、下のプレビュー内容で tileset.json を上書きしてください`);
-      } else {
-        lines.push(
-          `npx 3d-tiles-tools createTilesetJson \\\n  -i ${firstAlignedPath} \\\n  -o ${tilesetPath} \\\n  --cartographicPositionDegrees ${lon} ${lat} ${height} \\\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-        );
-        lines.push(`# createTilesetJson で作成後、下のプレビュー内容で tileset.json を上書きしてください`);
+        return [
+          `mkdir ${outDir}`,
+          `npx 3d-tiles-tools glbToB3dm ^\n  -i ${glbPath} ^\n  -o ${rawB3dmPath}`,
+          `npx 3d-tiles-tools updateAlignment ^\n  -i ${rawB3dmPath} ^\n  -o ${alignedB3dmPath}`,
+          `npx 3d-tiles-tools createTilesetJson ^\n  -i ${alignedB3dmPath} ^\n  -o ${tilesetPath} ^\n  --cartographicPositionDegrees ${lon} ${lat} ${height} ^\n  --rotationDegrees ${heading} ${pitch} ${roll}`
+        ].join("\n\n");
       }
 
-      return lines.join("\n\n");
-    }
-
-    function buildB3dmList() {
-      const glbNames = parseGlbNames();
-      return glbNames.map(glb => glbToB3dmName(glb)).join("\n");
+      return [
+        `mkdir -p ${outDir}`,
+        `npx 3d-tiles-tools glbToB3dm \\\n  -i ${glbPath} \\\n  -o ${rawB3dmPath}`,
+        `npx 3d-tiles-tools updateAlignment \\\n  -i ${rawB3dmPath} \\\n  -o ${alignedB3dmPath}`,
+        `npx 3d-tiles-tools createTilesetJson \\\n  -i ${alignedB3dmPath} \\\n  -o ${tilesetPath} \\\n  --cartographicPositionDegrees ${lon} ${lat} ${height} \\\n  --rotationDegrees ${heading} ${pitch} ${roll}`
+      ].join("\n\n");
     }
 
     function refresh() {
       el("commands").textContent = buildCommands();
       el("tilesetPreview").textContent = jsonStringifyPretty(buildTilesetObject());
-      el("b3dmListPreview").textContent = buildB3dmList();
     }
 
     function downloadJson() {
