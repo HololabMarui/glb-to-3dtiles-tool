@@ -1,0 +1,1145 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GLB to 3D Tiles Helper</title>
+
+  <link
+    href="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Widgets/widgets.css"
+    rel="stylesheet"
+  />
+  <script src="https://cesium.com/downloads/cesiumjs/releases/1.120/Build/Cesium/Cesium.js"></script>
+
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel-2: #1a2242;
+      --text: #e9eefb;
+      --muted: #a8b3cf;
+      --accent: #6ea8fe;
+      --border: #2b3563;
+      --ok: #7bd88f;
+      --warn: #ffd166;
+      --shadow: 0 10px 25px rgba(0,0,0,0.18);
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Sans", "Noto Sans JP", sans-serif;
+      background: linear-gradient(180deg, #0b1020 0%, #101733 100%);
+      color: var(--text);
+      line-height: 1.5;
+    }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .wrap {
+      max-width: 1320px;
+      margin: 0 auto;
+      padding: 32px 20px 48px;
+    }
+
+    .hero {
+      position: relative;
+      margin: 0 0 24px;
+      min-height: 240px;
+      border-radius: 24px;
+      overflow: hidden;
+      background-image:
+        linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
+        url("./images/header-bg.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.22);
+    }
+
+    .hero-overlay {
+      display: flex;
+      flex-direction: column;
+      justify-content: end;
+      min-height: 240px;
+      padding: 28px 24px;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: 44px;
+      color: #ffffff;
+      text-shadow: 0 2px 10px rgba(0,0,0,0.45);
+    }
+
+    .hero .lead {
+      margin: 0;
+      max-width: 790px;
+      color: #eef4ff;
+      text-shadow: 0 2px 8px rgba(0,0,0,0.35);
+    }
+
+    .pillbar {
+      display: inline-flex;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      overflow: hidden;
+      margin-bottom: 12px;
+    }
+
+    .pillbar button {
+      border: 0;
+      border-right: 1px solid var(--border);
+      border-radius: 0;
+      background: transparent;
+      color: var(--text);
+      padding: 10px 16px;
+      cursor: pointer;
+    }
+
+    .pillbar button:last-child {
+      border-right: 0;
+    }
+
+    .pillbar button.active {
+      background: var(--accent);
+      color: #08101f;
+      font-weight: 700;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 460px 1fr;
+      gap: 20px;
+    }
+
+    .stack {
+      display: grid;
+      gap: 16px;
+    }
+
+    .card {
+      background: rgba(18, 25, 51, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      padding: 20px;
+      box-shadow: var(--shadow);
+    }
+
+    .card h2 {
+      margin-top: 0;
+      font-size: 20px;
+    }
+
+    .card h3 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .subsection {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
+    }
+
+    .row {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    .row-3 {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 12px;
+      margin-bottom: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .label-row label {
+      margin-bottom: 0;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      background: var(--panel-2);
+      color: var(--text);
+      font-size: 14px;
+    }
+
+    textarea {
+      min-height: 180px;
+      resize: vertical;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    pre {
+      margin: 0;
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 13px;
+      background: #0a1022;
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      padding: 14px;
+      overflow: auto;
+    }
+
+    .buttons {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 8px;
+    }
+
+    button.action {
+      border: 1px solid var(--border);
+      background: var(--accent);
+      color: #08101f;
+      font-weight: 700;
+      padding: 12px 16px;
+      border-radius: 12px;
+      cursor: pointer;
+    }
+
+    button.ghost {
+      background: transparent;
+      color: var(--text);
+    }
+
+    .notice {
+      border: 1px solid rgba(255, 209, 102, 0.35);
+      background: rgba(255, 209, 102, 0.08);
+      color: #ffe5a4;
+      border-radius: 14px;
+      padding: 14px;
+      font-size: 13px;
+      line-height: 1.7;
+    }
+
+    .note {
+      font-size: 13px;
+      color: var(--muted);
+      margin-top: 10px;
+      line-height: 1.7;
+    }
+
+    .mini-note {
+      font-size: 12px;
+      color: var(--muted);
+      margin-top: 6px;
+      line-height: 1.6;
+    }
+
+    .ok { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
+
+    #cesiumContainer {
+      width: 100%;
+      height: 560px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      overflow: hidden;
+      background: #08101f;
+    }
+
+    .status-line {
+      font-size: 13px;
+      color: var(--muted);
+      line-height: 1.7;
+      white-space: pre-wrap;
+    }
+
+    .help-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .help-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 999px;
+      background: rgba(110,168,254,.18);
+      color: #dce9ff;
+      border: 1px solid rgba(110,168,254,.35);
+      font-size: 12px;
+      line-height: 20px;
+      display: inline-grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 30;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 260px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #0a132a;
+      border: 1px solid rgba(255,255,255,.1);
+      color: #d9e6ff;
+      font-size: 12px;
+      line-height: 1.6;
+      box-shadow: 0 14px 28px rgba(0,0,0,.35);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+      pointer-events: none;
+    }
+
+    .help-wrap:hover .tooltip,
+    .help-wrap:focus-within .tooltip,
+    .help-wrap.open .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
+    }
+
+    @media (max-width: 980px) {
+      .grid, .row, .row-3 {
+        grid-template-columns: 1fr;
+      }
+      #cesiumContainer {
+        height: 420px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <div class="hero">
+      <div class="hero-overlay">
+        <h1>GLB to 3D Tiles Helper</h1>
+        <p class="lead">
+          Cesium ion 非依存で、OSMベースマップ上に地理配置つき 3D Tiles の設定確認を行うための支援ページです。
+        </p>
+      </div>
+    </div>
+
+    <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
+      <button id="tab-guide" type="button">環境構築ガイド</button>
+      <button id="tab-tool" class="active" type="button">変換ツール</button>
+    </div>
+
+    <section id="page-guide" class="stack" style="display:none;">
+      <section class="card">
+        <h2>概要</h2>
+        <p class="note">
+          このページは、<span class="ok">環境構築の確認</span> と
+          <span class="ok">変換条件の整理・JSON雛形生成</span> を目的にした GitHub Pages 向けUIです。
+          地図表示は <span class="ok">CesiumJS + OSM</span> を前提にし、Cesium ion 依存を避けています。
+        </p>
+      </section>
+
+      <section class="card">
+        <h2>前提条件</h2>
+        <div class="note">
+          <div>・Node.js / npm がインストール済みであること</div>
+          <div>・必要に応じて Python 仮想環境が利用できること</div>
+          <div>・作業フォルダに変換対象の <code>.glb</code> があること</div>
+          <div>・作業フォルダで <code>3d-tiles-tools</code> が使えること</div>
+          <div>・ローカル確認時は <code>file://</code> 直開きより <code>http://localhost</code> 推奨</div>
+        </div>
+      </section>
+
+      <section class="card">
+        <h2>セットアップ手順</h2>
+
+        <div class="pillbar" role="tablist" aria-label="OS選択">
+          <button id="guide-os-mac" class="active" type="button">Mac / Linux</button>
+          <button id="guide-os-win" type="button">Windows</button>
+        </div>
+
+        <div id="guide-mac">
+<pre>cd /your/project/path
+
+python3 -m venv .venv
+source .venv/bin/activate
+
+python -m pip install --upgrade pip
+python -m pip install trimesh numpy pygltflib
+
+npm install 3d-tiles-tools
+npx 3d-tiles-tools --help
+
+python3 -m http.server 8000</pre>
+        </div>
+
+        <div id="guide-win" style="display:none;">
+<pre>cd C:\your\project\path
+
+py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+
+python -m pip install --upgrade pip
+python -m pip install trimesh numpy pygltflib
+
+npm install 3d-tiles-tools
+npx 3d-tiles-tools --help
+
+py -3 -m http.server 8000</pre>
+        </div>
+
+        <p class="note">
+          ローカルで開くときは、ブラウザで <code>http://localhost:8000/</code> を開く形が安定です。
+        </p>
+      </section>
+    </section>
+
+    <section id="page-tool" class="grid">
+      <section class="card">
+        <h2>変換ツール</h2>
+
+        <div class="pillbar" role="tablist" aria-label="OS選択">
+          <button id="os-mac" class="active" type="button">Mac / Linux</button>
+          <button id="os-win" type="button">Windows</button>
+        </div>
+
+        <div class="notice" style="margin-bottom:16px;">
+          この段階では <strong>OSMベースマップ上で位置合わせ</strong> ができます。  
+          ただし、<strong>GLB の自動分割 / 複数 B3DM 生成は未接続</strong> です。  
+          地図で確認した位置・姿勢から、<strong>tileset.json 雛形と設定JSON</strong> を出力します。
+        </div>
+
+        <div class="stack">
+          <section class="subsection">
+            <h3>1. 地図設定</h3>
+            <div class="row">
+              <div>
+                <label for="imageryMode">ベースマップ</label>
+                <select id="imageryMode">
+                  <option value="osm">OpenStreetMap</option>
+                  <option value="none">なし</option>
+                </select>
+              </div>
+              <div>
+                <label for="mapHeightMode">地表モード</label>
+                <select id="mapHeightMode">
+                  <option value="ellipsoid">Ellipsoid</option>
+                </select>
+              </div>
+            </div>
+            <div class="buttons">
+              <button class="action" id="initMapBtn" type="button">地図を初期化</button>
+            </div>
+            <p class="mini-note">
+              この版は Cesium ion トークン不要です。OSM を背景地図として使います。
+            </p>
+          </section>
+
+          <section class="subsection">
+            <h3>2. 入力GLB</h3>
+            <div class="row">
+              <div>
+                <label for="glbFile">入力GLBファイル</label>
+                <input id="glbFile" type="file" accept=".glb,.gltf" />
+              </div>
+              <div>
+                <label for="glbName">入力GLBファイル名（手入力可）</label>
+                <input id="glbName" value="your_model.glb" />
+              </div>
+            </div>
+            <div class="row">
+              <div>
+                <label for="outDir">出力フォルダ名</label>
+                <input id="outDir" value="out_tiles" />
+              </div>
+              <div>
+                <label for="tilePrefix">タイル接頭辞</label>
+                <input id="tilePrefix" value="tile" />
+              </div>
+            </div>
+          </section>
+
+          <section class="subsection">
+            <h3>3. 分割条件</h3>
+
+            <div class="row">
+              <div>
+                <div class="label-row">
+                  <label for="splitMode">分割方式</label>
+                  <div class="help-wrap">
+                    <button class="help-btn" type="button">?</button>
+                    <div class="tooltip">
+                      モデルをどの空間単位で分割するかを選びます。<br>
+                      Quadtree は XY 平面の4分割、Octree は XYZ の8分割です。
+                    </div>
+                  </div>
+                </div>
+                <select id="splitMode">
+                  <option value="quadtree">Quadtree</option>
+                  <option value="octree">Octree</option>
+                </select>
+              </div>
+
+              <div>
+                <div class="label-row">
+                  <label for="refineMode">Refine</label>
+                  <div class="help-wrap">
+                    <button class="help-btn" type="button">?</button>
+                    <div class="tooltip">
+                      子タイル表示時に親タイルをどう扱うかを示します。<br>
+                      ADD は親子を重ねる考え方、REPLACE は子が出ると親を置き換える考え方です。
+                    </div>
+                  </div>
+                </div>
+                <select id="refineMode">
+                  <option value="ADD">ADD</option>
+                  <option value="REPLACE">REPLACE</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <div class="label-row">
+                  <label for="maxTriangles">最大三角形数 / Leaf</label>
+                  <div class="help-wrap">
+                    <button class="help-btn" type="button">?</button>
+                    <div class="tooltip">
+                      1つの末端タイルに含める三角形数の上限目安です。
+                    </div>
+                  </div>
+                </div>
+                <input id="maxTriangles" type="number" value="15000" min="1000" step="1000" />
+              </div>
+
+              <div>
+                <div class="label-row">
+                  <label for="maxDepth">最大深さ</label>
+                  <div class="help-wrap">
+                    <button class="help-btn" type="button">?</button>
+                    <div class="tooltip">
+                      分割を何段まで再帰的に続けるかの上限です。
+                    </div>
+                  </div>
+                </div>
+                <input id="maxDepth" type="number" value="5" min="1" max="12" step="1" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <div class="label-row">
+                  <label for="targetSize">目標サイズ / Tile (MB)</label>
+                  <div class="help-wrap">
+                    <button class="help-btn" type="button">?</button>
+                    <div class="tooltip">
+                      1タイルあたりのサイズ目安です。将来の再分割判断に使います。
+                    </div>
+                  </div>
+                </div>
+                <input id="targetSize" type="number" value="10" min="1" step="1" />
+              </div>
+
+              <div>
+                <label for="tileCountHint">想定タイル数メモ（任意）</label>
+                <input id="tileCountHint" value="auto" />
+              </div>
+            </div>
+          </section>
+
+          <section class="subsection">
+            <h3>4. 地理配置</h3>
+
+            <div class="row-3">
+              <div>
+                <label for="lon">経度</label>
+                <input id="lon" type="number" step="any" value="139.767125" />
+              </div>
+              <div>
+                <label for="lat">緯度</label>
+                <input id="lat" type="number" step="any" value="35.681236" />
+              </div>
+              <div>
+                <label for="height">高さ</label>
+                <input id="height" type="number" step="any" value="50" />
+              </div>
+            </div>
+
+            <div class="row-3">
+              <div>
+                <label for="heading">Heading</label>
+                <input id="heading" type="number" step="any" value="0" />
+              </div>
+              <div>
+                <label for="pitch">Pitch</label>
+                <input id="pitch" type="number" step="any" value="0" />
+              </div>
+              <div>
+                <label for="roll">Roll</label>
+                <input id="roll" type="number" step="any" value="0" />
+              </div>
+            </div>
+
+            <div class="row">
+              <div>
+                <label for="scale">Scale</label>
+                <input id="scale" type="number" step="any" value="1" />
+              </div>
+              <div>
+                <label for="tilesetName">出力 tileset.json 名</label>
+                <input id="tilesetName" value="tileset.json" />
+              </div>
+            </div>
+
+            <div class="buttons">
+              <button class="action" id="pickOnMapBtn" type="button">地図クリックで位置を指定</button>
+              <button class="action ghost" id="flyBtn" type="button">現在位置へズーム</button>
+            </div>
+            <p class="mini-note">
+              「地図クリックで位置を指定」を押してから地図をクリックすると、緯度・経度が反映されます。
+            </p>
+          </section>
+
+          <section class="subsection">
+            <h3>5. 実行・保存</h3>
+            <div class="buttons">
+              <button class="action" id="generateBtn" type="button">JSON生成</button>
+              <button class="action ghost" id="downloadTilesetBtn" type="button">tileset.json を保存</button>
+              <button class="action ghost" id="downloadConfigBtn" type="button">設定JSONを保存</button>
+            </div>
+          </section>
+        </div>
+      </section>
+
+      <section class="stack">
+        <section class="card">
+          <h2>地図ビュー</h2>
+          <div id="cesiumContainer"></div>
+          <div id="mapStatus" class="status-line" style="margin-top:12px;">
+            地図は未初期化です。
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>生成される tileset.json</h2>
+          <pre id="tilesetPreview"></pre>
+        </section>
+
+        <section class="card">
+          <h2>生成される設定JSON</h2>
+          <pre id="configPreview"></pre>
+        </section>
+      </section>
+    </section>
+  </div>
+
+  <script>
+    let currentOs = "mac";
+    let currentTilesetText = "";
+    let currentConfigText = "";
+    let viewer = null;
+    let markerEntity = null;
+    let previewEntity = null;
+    let clickPickMode = false;
+    let handler = null;
+
+    const el = (id) => document.getElementById(id);
+
+    const fields = {
+      imageryMode: el("imageryMode"),
+      mapHeightMode: el("mapHeightMode"),
+      glbFile: el("glbFile"),
+      glbName: el("glbName"),
+      outDir: el("outDir"),
+      tilePrefix: el("tilePrefix"),
+      splitMode: el("splitMode"),
+      refineMode: el("refineMode"),
+      maxTriangles: el("maxTriangles"),
+      maxDepth: el("maxDepth"),
+      targetSize: el("targetSize"),
+      tileCountHint: el("tileCountHint"),
+      lon: el("lon"),
+      lat: el("lat"),
+      height: el("height"),
+      heading: el("heading"),
+      pitch: el("pitch"),
+      roll: el("roll"),
+      scale: el("scale"),
+      tilesetName: el("tilesetName")
+    };
+
+    function setMainTab(tab) {
+      el("tab-guide").classList.toggle("active", tab === "guide");
+      el("tab-tool").classList.toggle("active", tab === "tool");
+      el("page-guide").style.display = tab === "guide" ? "" : "none";
+      el("page-tool").style.display = tab === "tool" ? "grid" : "none";
+    }
+
+    function setGuideOs(os) {
+      el("guide-os-mac").classList.toggle("active", os === "mac");
+      el("guide-os-win").classList.toggle("active", os === "win");
+      el("guide-mac").style.display = os === "mac" ? "" : "none";
+      el("guide-win").style.display = os === "win" ? "" : "none";
+    }
+
+    function setToolOs(os) {
+      currentOs = os;
+      el("os-mac").classList.toggle("active", os === "mac");
+      el("os-win").classList.toggle("active", os === "win");
+      refresh();
+    }
+
+    function degToRad(deg) {
+      return deg * Math.PI / 180.0;
+    }
+
+    function multiply4x4(a, b) {
+      const out = new Array(16).fill(0);
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          for (let k = 0; k < 4; k++) {
+            out[r * 4 + c] += a[r * 4 + k] * b[k * 4 + c];
+          }
+        }
+      }
+      return out;
+    }
+
+    function translationMatrix(tx, ty, tz) {
+      return [1,0,0,tx, 0,1,0,ty, 0,0,1,tz, 0,0,0,1];
+    }
+
+    function scaleMatrix(s) {
+      return [s,0,0,0, 0,s,0,0, 0,0,s,0, 0,0,0,1];
+    }
+
+    function rotationX(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [1,0,0,0, 0,c,-s,0, 0,s,c,0, 0,0,0,1];
+    }
+
+    function rotationY(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [c,0,s,0, 0,1,0,0, -s,0,c,0, 0,0,0,1];
+    }
+
+    function rotationZ(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [c,-s,0,0, s,c,0,0, 0,0,1,0, 0,0,0,1];
+    }
+
+    function wgs84ToEcef(lonDeg, latDeg, h) {
+      const a = 6378137.0;
+      const f = 1.0 / 298.257223563;
+      const e2 = 2 * f - f * f;
+
+      const lon = degToRad(lonDeg);
+      const lat = degToRad(latDeg);
+      const cosLat = Math.cos(lat);
+      const sinLat = Math.sin(lat);
+      const cosLon = Math.cos(lon);
+      const sinLon = Math.sin(lon);
+      const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
+
+      return {
+        x: (N + h) * cosLat * cosLon,
+        y: (N + h) * cosLat * sinLon,
+        z: (N * (1 - e2) + h) * sinLat
+      };
+    }
+
+    function enuFrame(lonDeg, latDeg) {
+      const lon = degToRad(lonDeg);
+      const lat = degToRad(latDeg);
+
+      const east = [-Math.sin(lon), Math.cos(lon), 0];
+      const north = [
+        -Math.sin(lat) * Math.cos(lon),
+        -Math.sin(lat) * Math.sin(lon),
+         Math.cos(lat)
+      ];
+      const up = [
+         Math.cos(lat) * Math.cos(lon),
+         Math.cos(lat) * Math.sin(lon),
+         Math.sin(lat)
+      ];
+
+      return [
+        east[0], north[0], up[0], 0,
+        east[1], north[1], up[1], 0,
+        east[2], north[2], up[2], 0,
+        0, 0, 0, 1
+      ];
+    }
+
+    function composeTransform(lon, lat, h, headingDeg, pitchDeg, rollDeg, scl) {
+      const ecef = wgs84ToEcef(lon, lat, h);
+      const T = translationMatrix(ecef.x, ecef.y, ecef.z);
+      const ENU = enuFrame(lon, lat);
+      const Rz = rotationZ(degToRad(headingDeg));
+      const Ry = rotationY(degToRad(pitchDeg));
+      const Rx = rotationX(degToRad(rollDeg));
+      const S = scaleMatrix(scl);
+
+      let M = multiply4x4(ENU, Rz);
+      M = multiply4x4(M, Ry);
+      M = multiply4x4(M, Rx);
+      M = multiply4x4(M, S);
+      M = multiply4x4(T, M);
+
+      return M.map(v => Number(v.toFixed(12)));
+    }
+
+    function buildTilesetObject() {
+      return {
+        asset: {
+          version: "1.0",
+          generator: "GLB to 3D Tiles Stage2 OSM Map UI"
+        },
+        extras: {
+          stage: 2,
+          sourceGlb: fields.glbName.value.trim() || null,
+          splitMode: fields.splitMode.value,
+          maxTrianglesPerLeaf: Number(fields.maxTriangles.value),
+          maxDepth: Number(fields.maxDepth.value),
+          targetSizeMB: Number(fields.targetSize.value),
+          tilePrefix: fields.tilePrefix.value.trim(),
+          tileCountHint: fields.tileCountHint.value.trim() || null,
+          mapProvider: fields.imageryMode.value,
+          note: "OSM地図位置合わせUI。複数b3dm生成は未接続。"
+        },
+        geometricError: 500,
+        root: {
+          refine: fields.refineMode.value,
+          transform: composeTransform(
+            Number(fields.lon.value),
+            Number(fields.lat.value),
+            Number(fields.height.value),
+            Number(fields.heading.value),
+            Number(fields.pitch.value),
+            Number(fields.roll.value),
+            Number(fields.scale.value)
+          ),
+          boundingVolume: {
+            box: [0,0,0,50,0,0,0,50,0,0,0,50]
+          },
+          geometricError: 100,
+          content: {
+            uri: (fields.tilePrefix.value.trim() || "tile") + "_root.b3dm"
+          },
+          children: [
+            {
+              boundingVolume: { box: [-25,-25,0,25,0,0,0,25,0,0,0,25] },
+              geometricError: 0,
+              content: { uri: (fields.tilePrefix.value.trim() || "tile") + "_0.b3dm" }
+            },
+            {
+              boundingVolume: { box: [25,-25,0,25,0,0,0,25,0,0,0,25] },
+              geometricError: 0,
+              content: { uri: (fields.tilePrefix.value.trim() || "tile") + "_1.b3dm" }
+            },
+            {
+              boundingVolume: { box: [-25,25,0,25,0,0,0,25,0,0,0,25] },
+              geometricError: 0,
+              content: { uri: (fields.tilePrefix.value.trim() || "tile") + "_2.b3dm" }
+            },
+            {
+              boundingVolume: { box: [25,25,0,25,0,0,0,25,0,0,0,25] },
+              geometricError: 0,
+              content: { uri: (fields.tilePrefix.value.trim() || "tile") + "_3.b3dm" }
+            }
+          ]
+        }
+      };
+    }
+
+    function buildConfigObject() {
+      return {
+        sourceGlb: fields.glbName.value.trim() || null,
+        output: {
+          outDir: fields.outDir.value.trim(),
+          tilesetName: fields.tilesetName.value.trim(),
+          tilePrefix: fields.tilePrefix.value.trim()
+        },
+        split: {
+          mode: fields.splitMode.value,
+          refine: fields.refineMode.value,
+          maxTrianglesPerLeaf: Number(fields.maxTriangles.value),
+          maxDepth: Number(fields.maxDepth.value),
+          targetSizeMB: Number(fields.targetSize.value),
+          tileCountHint: fields.tileCountHint.value.trim() || null
+        },
+        georeference: {
+          longitude: Number(fields.lon.value),
+          latitude: Number(fields.lat.value),
+          height: Number(fields.height.value),
+          heading: Number(fields.heading.value),
+          pitch: Number(fields.pitch.value),
+          roll: Number(fields.roll.value),
+          scale: Number(fields.scale.value)
+        },
+        runtime: {
+          os: currentOs === "win" ? "windows" : "mac-linux",
+          mapProvider: fields.imageryMode.value,
+          terrainMode: fields.mapHeightMode.value
+        }
+      };
+    }
+
+    function refresh() {
+      const tilesetObj = buildTilesetObject();
+      const configObj = buildConfigObject();
+      currentTilesetText = JSON.stringify(tilesetObj, null, 2);
+      currentConfigText = JSON.stringify(configObj, null, 2);
+      el("tilesetPreview").textContent = currentTilesetText;
+      el("configPreview").textContent = currentConfigText;
+      updateMapPreview();
+    }
+
+    function downloadText(filename, text, mime = "application/json") {
+      const blob = new Blob([text], { type: mime + ";charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function syncGlbNameFromFile() {
+      const file = fields.glbFile.files[0];
+      if (file) fields.glbName.value = file.name;
+      refresh();
+    }
+
+    function createImageryProvider() {
+      if (fields.imageryMode.value === "none") {
+        return false;
+      }
+      return new Cesium.OpenStreetMapImageryProvider({
+        url: "https://tile.openstreetmap.org/"
+      });
+    }
+
+    function initMap() {
+      try {
+        if (viewer) {
+          viewer.destroy();
+          viewer = null;
+        }
+
+        const imageryProvider = createImageryProvider();
+
+        viewer = new Cesium.Viewer("cesiumContainer", {
+          timeline: false,
+          animation: false,
+          geocoder: true,
+          homeButton: true,
+          sceneModePicker: false,
+          baseLayerPicker: false,
+          navigationHelpButton: false,
+          selectionIndicator: false,
+          infoBox: false,
+          imageryProvider: imageryProvider,
+          terrainProvider: new Cesium.EllipsoidTerrainProvider()
+        });
+
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+
+        if (handler) handler.destroy();
+        handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+        handler.setInputAction((click) => {
+          if (!clickPickMode) return;
+
+          const cartesian = viewer.camera.pickEllipsoid(
+            click.position,
+            viewer.scene.globe.ellipsoid
+          );
+
+          if (!cartesian) return;
+
+          const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+          const lon = Cesium.Math.toDegrees(cartographic.longitude);
+          const lat = Cesium.Math.toDegrees(cartographic.latitude);
+
+          fields.lon.value = lon.toFixed(6);
+          fields.lat.value = lat.toFixed(6);
+
+          clickPickMode = false;
+          el("mapStatus").textContent =
+            `地図クリックで位置を更新しました。\nLon: ${fields.lon.value}, Lat: ${fields.lat.value}`;
+
+          refresh();
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        flyToCurrentLocation();
+        refresh();
+
+        el("mapStatus").textContent =
+          "地図を初期化しました。OSMベースマップ上で位置合わせできます。";
+      } catch (err) {
+        console.error(err);
+        el("mapStatus").textContent =
+          "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
+      }
+    }
+
+    function flyToCurrentLocation() {
+      if (!viewer) return;
+      const lon = Number(fields.lon.value);
+      const lat = Number(fields.lat.value);
+      const h = Number(fields.height.value);
+
+      viewer.camera.flyTo({
+        destination: Cesium.Cartesian3.fromDegrees(lon, lat, Math.max(300, h + 1200))
+      });
+    }
+
+    function updateMapPreview() {
+      if (!viewer) return;
+
+      const lon = Number(fields.lon.value);
+      const lat = Number(fields.lat.value);
+      const h = Number(fields.height.value);
+      const heading = Number(fields.heading.value);
+      const pitch = Number(fields.pitch.value);
+      const roll = Number(fields.roll.value);
+      const scale = Number(fields.scale.value);
+
+      const pos = Cesium.Cartesian3.fromDegrees(lon, lat, h);
+
+      if (!markerEntity) {
+        markerEntity = viewer.entities.add({
+          position: pos,
+          point: {
+            pixelSize: 12,
+            color: Cesium.Color.YELLOW,
+            outlineColor: Cesium.Color.BLACK,
+            outlineWidth: 2
+          },
+          label: {
+            text: "3D Tiles origin",
+            font: "14px sans-serif",
+            pixelOffset: new Cesium.Cartesian2(0, -24),
+            fillColor: Cesium.Color.WHITE,
+            style: Cesium.LabelStyle.FILL_AND_OUTLINE,
+            outlineWidth: 3
+          }
+        });
+      } else {
+        markerEntity.position = pos;
+      }
+
+      const hpr = new Cesium.HeadingPitchRoll(
+        Cesium.Math.toRadians(heading),
+        Cesium.Math.toRadians(pitch),
+        Cesium.Math.toRadians(roll)
+      );
+
+      const orientation = Cesium.Transforms.headingPitchRollQuaternion(pos, hpr);
+
+      if (!previewEntity) {
+        previewEntity = viewer.entities.add({
+          position: pos,
+          orientation: orientation,
+          box: {
+            dimensions: new Cesium.Cartesian3(30 * scale, 20 * scale, 15 * scale),
+            material: Cesium.Color.CYAN.withAlpha(0.35),
+            outline: true,
+            outlineColor: Cesium.Color.WHITE
+          }
+        });
+      } else {
+        previewEntity.position = pos;
+        previewEntity.orientation = orientation;
+        previewEntity.box.dimensions = new Cesium.Cartesian3(30 * scale, 20 * scale, 15 * scale);
+      }
+
+      el("mapStatus").textContent =
+        `位置合わせプレビュー更新\nLon: ${lon.toFixed(6)}, Lat: ${lat.toFixed(6)}, Height: ${h}
+Heading: ${heading}, Pitch: ${pitch}, Roll: ${roll}, Scale: ${scale}`;
+    }
+
+    function enablePickMode() {
+      clickPickMode = true;
+      el("mapStatus").textContent = "地図上をクリックして配置位置を選んでください。";
+    }
+
+    document.querySelectorAll(".help-btn").forEach((btn) => {
+      btn.addEventListener("click", (e) => {
+        e.preventDefault();
+        const wrap = btn.closest(".help-wrap");
+        const isOpen = wrap.classList.contains("open");
+        document.querySelectorAll(".help-wrap.open").forEach((node) => node.classList.remove("open"));
+        if (!isOpen) wrap.classList.add("open");
+      });
+    });
+
+    document.addEventListener("click", (e) => {
+      if (!e.target.closest(".help-wrap")) {
+        document.querySelectorAll(".help-wrap.open").forEach((node) => node.classList.remove("open"));
+      }
+    });
+
+    el("tab-guide").addEventListener("click", () => setMainTab("guide"));
+    el("tab-tool").addEventListener("click", () => setMainTab("tool"));
+
+    el("guide-os-mac").addEventListener("click", () => setGuideOs("mac"));
+    el("guide-os-win").addEventListener("click", () => setGuideOs("win"));
+
+    el("os-mac").addEventListener("click", () => setToolOs("mac"));
+    el("os-win").addEventListener("click", () => setToolOs("win"));
+
+    el("initMapBtn").addEventListener("click", initMap);
+    el("pickOnMapBtn").addEventListener("click", enablePickMode);
+    el("flyBtn").addEventListener("click", flyToCurrentLocation);
+
+    el("generateBtn").addEventListener("click", refresh);
+    el("downloadTilesetBtn").addEventListener("click", () => {
+      if (!currentTilesetText) refresh();
+      downloadText(fields.tilesetName.value.trim() || "tileset.json", currentTilesetText);
+    });
+    el("downloadConfigBtn").addEventListener("click", () => {
+      if (!currentConfigText) refresh();
+      downloadText("stage2_config.json", currentConfigText);
+    });
+
+    fields.glbFile.addEventListener("change", syncGlbNameFromFile);
+
+    Object.values(fields).forEach((input) => {
+      if (input && input.id !== "glbFile") {
+        input.addEventListener("input", refresh);
+        input.addEventListener("change", refresh);
+      }
+    });
+
+    setMainTab("tool");
+    setGuideOs("mac");
+    setToolOs("mac");
+    refresh();
+  </script>
+</body>
+</html>
