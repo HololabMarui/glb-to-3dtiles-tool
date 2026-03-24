@@ -1,0 +1,870 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>GLB → 複数B3DM + 地理配置 3D Tiles 生成ツール（Stage 2 UI）</title>
+  <style>
+    :root {
+      --bg: #0b1020;
+      --panel: #121933;
+      --panel2: #1a2345;
+      --text: #eef3ff;
+      --muted: #aeb9d6;
+      --accent: #6ea8fe;
+      --accent2: #8ef0c8;
+      --danger: #ff8f8f;
+      --border: rgba(255,255,255,.12);
+      --input: #0f1630;
+      --shadow: 0 12px 28px rgba(0,0,0,.28);
+      --radius: 18px;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Sans", "Yu Gothic UI", sans-serif;
+      background:
+        radial-gradient(circle at top right, rgba(110,168,254,.14), transparent 28%),
+        radial-gradient(circle at top left, rgba(142,240,200,.12), transparent 24%),
+        linear-gradient(180deg, #0b1020 0%, #0a0f1d 100%);
+      color: var(--text);
+      min-height: 100vh;
+    }
+
+    .hero {
+      padding: 36px 24px 18px;
+      border-bottom: 1px solid var(--border);
+      background:
+        linear-gradient(rgba(8,12,25,.62), rgba(8,12,25,.78)),
+        url("https://images.unsplash.com/photo-1521295121783-8a321d551ad2?auto=format&fit=crop&w=1600&q=80")
+        center/cover no-repeat;
+    }
+
+    .hero h1 {
+      margin: 0 0 8px;
+      font-size: clamp(28px, 4vw, 42px);
+      line-height: 1.15;
+      letter-spacing: .02em;
+    }
+
+    .hero p {
+      margin: 0;
+      max-width: 980px;
+      color: var(--muted);
+      line-height: 1.75;
+    }
+
+    .wrap {
+      max-width: 1360px;
+      margin: 0 auto;
+      padding: 22px;
+    }
+
+    .grid {
+      display: grid;
+      grid-template-columns: 420px 1fr;
+      gap: 22px;
+      align-items: start;
+    }
+
+    .card {
+      background: linear-gradient(180deg, rgba(255,255,255,.03), rgba(255,255,255,.015));
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .card-head {
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.025);
+    }
+
+    .card-head h2, .card-head h3 {
+      margin: 0;
+      font-size: 16px;
+      letter-spacing: .02em;
+    }
+
+    .card-body {
+      padding: 18px;
+    }
+
+    .stack { display: grid; gap: 16px; }
+
+    .subgrid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .subgrid-3 {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 12px;
+    }
+
+    label {
+      display: block;
+      font-size: 13px;
+      color: var(--muted);
+      margin-bottom: 6px;
+    }
+
+    input, select, textarea {
+      width: 100%;
+      background: var(--input);
+      color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 13px;
+      outline: none;
+      font-size: 14px;
+    }
+
+    input[type="file"] {
+      padding: 10px;
+      background: rgba(255,255,255,.02);
+    }
+
+    textarea {
+      min-height: 260px;
+      resize: vertical;
+      line-height: 1.5;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+    }
+
+    .hint {
+      font-size: 12px;
+      color: var(--muted);
+      line-height: 1.6;
+    }
+
+    .button-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    button {
+      appearance: none;
+      border: none;
+      border-radius: 999px;
+      padding: 12px 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform .15s ease, opacity .15s ease, box-shadow .15s ease;
+    }
+
+    button:hover { transform: translateY(-1px); }
+    button:active { transform: translateY(0); }
+
+    .primary {
+      background: linear-gradient(135deg, var(--accent), #90bfff);
+      color: #08111f;
+      box-shadow: 0 8px 18px rgba(110,168,254,.24);
+    }
+
+    .secondary {
+      background: linear-gradient(135deg, #24345f, #31457d);
+      color: var(--text);
+    }
+
+    .good {
+      background: linear-gradient(135deg, var(--accent2), #b5f8de);
+      color: #0c1e19;
+    }
+
+    .ghost {
+      background: rgba(255,255,255,.06);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .status {
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(255,255,255,.04);
+      border: 1px solid var(--border);
+      line-height: 1.6;
+      font-size: 13px;
+      color: var(--muted);
+      white-space: pre-wrap;
+    }
+
+    .pill-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      padding: 8px 10px;
+      font-size: 12px;
+      color: var(--muted);
+      background: rgba(255,255,255,.03);
+    }
+
+    .viewer {
+      min-height: 560px;
+      display: grid;
+      grid-template-rows: auto 1fr;
+    }
+
+    .viewer-top {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      padding: 16px 18px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(255,255,255,.02);
+    }
+
+    .viewer-top p {
+      margin: 0;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .preview {
+      position: relative;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.02), rgba(255,255,255,.01)),
+        linear-gradient(135deg, #10172e, #0b1020);
+      overflow: hidden;
+    }
+
+    .preview-inner {
+      position: absolute;
+      inset: 0;
+      display: grid;
+      place-items: center;
+    }
+
+    .preview-frame {
+      width: min(92%, 980px);
+      height: min(84%, 680px);
+      border: 1px solid rgba(255,255,255,.08);
+      border-radius: 24px;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 30% 20%, rgba(255,255,255,.08), transparent 22%),
+        linear-gradient(180deg, #182448 0%, #0f1730 38%, #101b2c 39%, #12283a 100%);
+      position: relative;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,.04);
+    }
+
+    .map-grid {
+      position: absolute;
+      inset: 0;
+      background-image:
+        linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.04) 1px, transparent 1px);
+      background-size: 32px 32px;
+      opacity: .5;
+    }
+
+    .fake-map-label {
+      position: absolute;
+      top: 16px;
+      left: 16px;
+      padding: 8px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      color: var(--text);
+      background: rgba(7,10,20,.46);
+      border: 1px solid rgba(255,255,255,.08);
+      backdrop-filter: blur(6px);
+    }
+
+    .glb-chip {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      width: 220px;
+      height: 120px;
+      margin-left: -110px;
+      margin-top: -60px;
+      border-radius: 18px;
+      border: 1px solid rgba(142,240,200,.4);
+      background: linear-gradient(135deg, rgba(142,240,200,.16), rgba(110,168,254,.16));
+      box-shadow:
+        0 0 0 1px rgba(255,255,255,.04) inset,
+        0 14px 28px rgba(0,0,0,.24);
+      display: grid;
+      place-items: center;
+      font-weight: 700;
+      letter-spacing: .04em;
+      transform-origin: center;
+    }
+
+    .preview-note {
+      position: absolute;
+      right: 16px;
+      bottom: 16px;
+      max-width: 360px;
+      padding: 12px 14px;
+      border-radius: 14px;
+      background: rgba(7,10,20,.58);
+      border: 1px solid rgba(255,255,255,.08);
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.6;
+    }
+
+    .footer-note {
+      margin-top: 18px;
+      color: var(--muted);
+      font-size: 12px;
+      line-height: 1.8;
+    }
+
+    @media (max-width: 1080px) {
+      .grid {
+        grid-template-columns: 1fr;
+      }
+      .viewer {
+        min-height: 460px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <section class="hero">
+    <h1>GLB → 複数B3DM + 地理配置 3D Tiles 生成ツール</h1>
+    <p>
+      Stage 2 用の公開向けUI土台です。GLB選択、分割条件、緯度・経度・高さ、Heading / Pitch / Roll / Scale を入力し、
+      地理配置つきの <code>tileset.json</code> 雛形と設定JSONを生成します。実際の複数B3DM生成ロジックは次段階で接続する前提です。
+    </p>
+  </section>
+
+  <main class="wrap">
+    <div class="grid">
+      <section class="stack">
+        <div class="card">
+          <div class="card-head"><h2>1. 入力GLB</h2></div>
+          <div class="card-body stack">
+            <div>
+              <label for="glbFile">GLBファイル</label>
+              <input id="glbFile" type="file" accept=".glb,.gltf" />
+            </div>
+            <div class="pill-row">
+              <div class="pill">公開向けUI</div>
+              <div class="pill">GitHub Pages対応</div>
+              <div class="pill">Stage 2 土台</div>
+            </div>
+            <div class="hint">
+              ここではファイル名と設定値を使って <code>tileset.json</code> 雛形を生成します。実際の分割・B3DM生成処理は後段で接続します。
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>2. 分割条件</h2></div>
+          <div class="card-body stack">
+            <div class="subgrid">
+              <div>
+                <label for="splitMode">分割方式</label>
+                <select id="splitMode">
+                  <option value="quadtree">Quadtree</option>
+                  <option value="octree">Octree</option>
+                </select>
+              </div>
+              <div>
+                <label for="refineMode">Refine</label>
+                <select id="refineMode">
+                  <option value="ADD">ADD</option>
+                  <option value="REPLACE">REPLACE</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="subgrid">
+              <div>
+                <label for="maxTriangles">最大三角形数 / Leaf</label>
+                <input id="maxTriangles" type="number" value="15000" min="1000" step="1000" />
+              </div>
+              <div>
+                <label for="maxDepth">最大深さ</label>
+                <input id="maxDepth" type="number" value="5" min="1" max="12" step="1" />
+              </div>
+            </div>
+
+            <div class="subgrid">
+              <div>
+                <label for="targetSize">目標サイズ / Tile (MB)</label>
+                <input id="targetSize" type="number" value="10" min="1" step="1" />
+              </div>
+              <div>
+                <label for="tilePrefix">タイル接頭辞</label>
+                <input id="tilePrefix" type="text" value="tile" />
+              </div>
+            </div>
+
+            <div class="hint">
+              実処理接続後は、ここで指定した値を使って GLB → 複数B3DM 生成へ渡す想定です。
+            </div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-head"><h2>3. 地理配置</h2></div>
+          <div class="card-body stack">
+            <div class="subgrid">
+              <div>
+                <label for="longitude">経度 Longitude</label>
+                <input id="longitude" type="number" value="139.767125" step="0.000001" />
+              </div>
+              <div>
+                <label for="latitude">緯度 Latitude</label>
+                <input id="latitude" type="number" value="35.681236" step="0.000001" />
+              </div>
+            </div>
+
+            <div class="subgrid">
+              <div>
+                <label for="height">高さ Height (m)</label>
+                <input id="height" type="number" value="0" step="0.1" />
+              </div>
+              <div>
+                <label for="scale">Scale</label>
+                <input id="scale" type="number" value="1" step="0.01" />
+              </div>
+            </div>
+
+            <div class="subgrid-3">
+              <div>
+                <label for="heading">Heading (deg)</label>
+                <input id="heading" type="number" value="0" step="0.1" />
+              </div>
+              <div>
+                <label for="pitch">Pitch (deg)</label>
+                <input id="pitch" type="number" value="0" step="0.1" />
+              </div>
+              <div>
+                <label for="roll">Roll (deg)</label>
+                <input id="roll" type="number" value="0" step="0.1" />
+              </div>
+            </div>
+
+            <div class="button-row">
+              <button class="primary" id="generateBtn">tileset.json を生成</button>
+              <button class="secondary" id="sampleBtn">サンプル値を再設定</button>
+            </div>
+
+            <div class="status" id="statusBox">まだ生成していません。</div>
+          </div>
+        </div>
+      </section>
+
+      <section class="card viewer">
+        <div class="viewer-top">
+          <div>
+            <h3 style="margin:0 0 4px;">Stage 2 プレビュー</h3>
+            <p>次段階ではここを地図ビュー付きの位置合わせUIに拡張します。</p>
+          </div>
+          <div class="button-row">
+            <button class="good" id="downloadTilesetBtn">tileset.json を保存</button>
+            <button class="ghost" id="downloadConfigBtn">設定JSONを保存</button>
+          </div>
+        </div>
+
+        <div class="preview">
+          <div class="preview-inner">
+            <div class="preview-frame">
+              <div class="map-grid"></div>
+              <div class="fake-map-label">Map Preview Placeholder</div>
+              <div class="glb-chip" id="glbChip">GLB</div>
+              <div class="preview-note" id="previewNote">
+                ここでは緯度経度高さと Heading / Pitch / Roll / Scale の状態を簡易表示しています。
+                次段階では CesiumJS ベースの地図ビューで位置合わせできるようにする想定です。
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card-body">
+          <div class="stack">
+            <div>
+              <label for="tilesetOutput">生成された tileset.json</label>
+              <textarea id="tilesetOutput" spellcheck="false"></textarea>
+            </div>
+            <div class="footer-note">
+              この版では <code>root.transform</code> を生成し、分割条件・出力前提もあわせて保持します。
+              実際の <code>children</code> や <code>content.uri</code> は、分割/B3DM生成処理を接続した段階で埋め込みます。
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </main>
+
+  <script>
+    const el = (id) => document.getElementById(id);
+
+    const glbFile = el("glbFile");
+    const splitMode = el("splitMode");
+    const refineMode = el("refineMode");
+    const maxTriangles = el("maxTriangles");
+    const maxDepth = el("maxDepth");
+    const targetSize = el("targetSize");
+    const tilePrefix = el("tilePrefix");
+
+    const longitude = el("longitude");
+    const latitude = el("latitude");
+    const height = el("height");
+    const heading = el("heading");
+    const pitch = el("pitch");
+    const roll = el("roll");
+    const scale = el("scale");
+
+    const statusBox = el("statusBox");
+    const tilesetOutput = el("tilesetOutput");
+    const glbChip = el("glbChip");
+    const previewNote = el("previewNote");
+
+    let currentTilesetText = "";
+    let currentConfigText = "";
+
+    function degToRad(deg) {
+      return deg * Math.PI / 180.0;
+    }
+
+    function multiply4x4(a, b) {
+      const out = new Array(16).fill(0);
+      for (let r = 0; r < 4; r++) {
+        for (let c = 0; c < 4; c++) {
+          for (let k = 0; k < 4; k++) {
+            out[r * 4 + c] += a[r * 4 + k] * b[k * 4 + c];
+          }
+        }
+      }
+      return out;
+    }
+
+    function translationMatrix(tx, ty, tz) {
+      return [
+        1,0,0,tx,
+        0,1,0,ty,
+        0,0,1,tz,
+        0,0,0,1
+      ];
+    }
+
+    function scaleMatrix(s) {
+      return [
+        s,0,0,0,
+        0,s,0,0,
+        0,0,s,0,
+        0,0,0,1
+      ];
+    }
+
+    function rotationX(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [
+        1,0,0,0,
+        0,c,-s,0,
+        0,s,c,0,
+        0,0,0,1
+      ];
+    }
+
+    function rotationY(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [
+        c,0,s,0,
+        0,1,0,0,
+        -s,0,c,0,
+        0,0,0,1
+      ];
+    }
+
+    function rotationZ(rad) {
+      const c = Math.cos(rad), s = Math.sin(rad);
+      return [
+        c,-s,0,0,
+        s,c,0,0,
+        0,0,1,0,
+        0,0,0,1
+      ];
+    }
+
+    function wgs84ToEcef(lonDeg, latDeg, h) {
+      const a = 6378137.0;
+      const f = 1.0 / 298.257223563;
+      const e2 = 2 * f - f * f;
+
+      const lon = degToRad(lonDeg);
+      const lat = degToRad(latDeg);
+
+      const cosLat = Math.cos(lat);
+      const sinLat = Math.sin(lat);
+      const cosLon = Math.cos(lon);
+      const sinLon = Math.sin(lon);
+
+      const N = a / Math.sqrt(1 - e2 * sinLat * sinLat);
+
+      const x = (N + h) * cosLat * cosLon;
+      const y = (N + h) * cosLat * sinLon;
+      const z = (N * (1 - e2) + h) * sinLat;
+
+      return { x, y, z };
+    }
+
+    function enuFrame(lonDeg, latDeg) {
+      const lon = degToRad(lonDeg);
+      const lat = degToRad(latDeg);
+
+      const east = [
+        -Math.sin(lon),
+         Math.cos(lon),
+         0
+      ];
+
+      const north = [
+        -Math.sin(lat) * Math.cos(lon),
+        -Math.sin(lat) * Math.sin(lon),
+         Math.cos(lat)
+      ];
+
+      const up = [
+         Math.cos(lat) * Math.cos(lon),
+         Math.cos(lat) * Math.sin(lon),
+         Math.sin(lat)
+      ];
+
+      return [
+        east[0], north[0], up[0], 0,
+        east[1], north[1], up[1], 0,
+        east[2], north[2], up[2], 0,
+        0, 0, 0, 1
+      ];
+    }
+
+    function composeTransform(lon, lat, h, headingDeg, pitchDeg, rollDeg, scl) {
+      const ecef = wgs84ToEcef(lon, lat, h);
+      const T = translationMatrix(ecef.x, ecef.y, ecef.z);
+      const ENU = enuFrame(lon, lat);
+      const Rz = rotationZ(degToRad(headingDeg));
+      const Ry = rotationY(degToRad(pitchDeg));
+      const Rx = rotationX(degToRad(rollDeg));
+      const S = scaleMatrix(scl);
+
+      let M = multiply4x4(ENU, Rz);
+      M = multiply4x4(M, Ry);
+      M = multiply4x4(M, Rx);
+      M = multiply4x4(M, S);
+      M = multiply4x4(T, M);
+
+      return M.map(v => Number(v.toFixed(12)));
+    }
+
+    function makeTilesetObject() {
+      const file = glbFile.files[0];
+      const baseName = file ? file.name.replace(/\.[^.]+$/, "") : "input_model";
+
+      const transform = composeTransform(
+        Number(longitude.value),
+        Number(latitude.value),
+        Number(height.value),
+        Number(heading.value),
+        Number(pitch.value),
+        Number(roll.value),
+        Number(scale.value)
+      );
+
+      return {
+        asset: {
+          version: "1.0",
+          generator: "GLB to 3D Tiles Stage2 UI Prototype"
+        },
+        extras: {
+          stage: 2,
+          sourceGlb: file ? file.name : null,
+          splitMode: splitMode.value,
+          maxTrianglesPerLeaf: Number(maxTriangles.value),
+          maxDepth: Number(maxDepth.value),
+          targetSizeMB: Number(targetSize.value),
+          tilePrefix: tilePrefix.value,
+          note: "実際の複数b3dm生成・children構築は未接続。Stage 2 UI土台。"
+        },
+        geometricError: 500,
+        root: {
+          refine: refineMode.value,
+          transform,
+          boundingVolume: {
+            box: [0,0,0,50,0,0,0,50,0,0,0,50]
+          },
+          geometricError: 100,
+          content: {
+            uri: tilePrefix.value + "_root.b3dm"
+          },
+          children: [
+            {
+              boundingVolume: {
+                box: [-25,-25,0,25,0,0,0,25,0,0,0,25]
+              },
+              geometricError: 0,
+              content: {
+                uri: tilePrefix.value + "_0.b3dm"
+              }
+            },
+            {
+              boundingVolume: {
+                box: [25,-25,0,25,0,0,0,25,0,0,0,25]
+              },
+              geometricError: 0,
+              content: {
+                uri: tilePrefix.value + "_1.b3dm"
+              }
+            },
+            {
+              boundingVolume: {
+                box: [-25,25,0,25,0,0,0,25,0,0,0,25]
+              },
+              geometricError: 0,
+              content: {
+                uri: tilePrefix.value + "_2.b3dm"
+              }
+            },
+            {
+              boundingVolume: {
+                box: [25,25,0,25,0,0,0,25,0,0,0,25]
+              },
+              geometricError: 0,
+              content: {
+                uri: tilePrefix.value + "_3.b3dm"
+              }
+            }
+          ]
+        },
+        properties: {
+          modelName: baseName
+        }
+      };
+    }
+
+    function makeConfigObject() {
+      const file = glbFile.files[0];
+      return {
+        sourceGlb: file ? file.name : null,
+        split: {
+          mode: splitMode.value,
+          maxTrianglesPerLeaf: Number(maxTriangles.value),
+          maxDepth: Number(maxDepth.value),
+          targetSizeMB: Number(targetSize.value),
+          tilePrefix: tilePrefix.value,
+          refine: refineMode.value
+        },
+        georeference: {
+          longitude: Number(longitude.value),
+          latitude: Number(latitude.value),
+          height: Number(height.value),
+          heading: Number(heading.value),
+          pitch: Number(pitch.value),
+          roll: Number(roll.value),
+          scale: Number(scale.value)
+        }
+      };
+    }
+
+    function updatePreview() {
+      const h = Number(heading.value) || 0;
+      const p = Number(pitch.value) || 0;
+      const r = Number(roll.value) || 0;
+      const s = Number(scale.value) || 1;
+
+      glbChip.style.transform =
+        `translateZ(0) rotateZ(${h}deg) rotateX(${r}deg) scale(${Math.max(0.2, s)})`;
+
+      const file = glbFile.files[0];
+      glbChip.textContent = file ? file.name : "GLB";
+
+      previewNote.textContent =
+        `Lon: ${longitude.value}, Lat: ${latitude.value}, Height: ${height.value}m
+Heading: ${heading.value}°, Pitch: ${pitch.value}°, Roll: ${roll.value}°, Scale: ${scale.value}
+分割: ${splitMode.value}, MaxTriangles: ${maxTriangles.value}, Depth: ${maxDepth.value}, Target: ${targetSize.value}MB`;
+    }
+
+    function generate() {
+      const tilesetObj = makeTilesetObject();
+      const configObj = makeConfigObject();
+
+      currentTilesetText = JSON.stringify(tilesetObj, null, 2);
+      currentConfigText = JSON.stringify(configObj, null, 2);
+
+      tilesetOutput.value = currentTilesetText;
+      statusBox.textContent =
+        "tileset.json 雛形を生成しました。\n" +
+        "・root.transform を反映済み\n" +
+        "・children / content.uri は仮のサンプル構成\n" +
+        "・次段階で実際の分割結果に接続します";
+
+      updatePreview();
+    }
+
+    function downloadText(filename, text, mime = "application/json") {
+      const blob = new Blob([text], { type: mime + ";charset=utf-8" });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function resetSamples() {
+      longitude.value = "139.767125";
+      latitude.value = "35.681236";
+      height.value = "0";
+      heading.value = "0";
+      pitch.value = "0";
+      roll.value = "0";
+      scale.value = "1";
+      splitMode.value = "quadtree";
+      refineMode.value = "ADD";
+      maxTriangles.value = "15000";
+      maxDepth.value = "5";
+      targetSize.value = "10";
+      tilePrefix.value = "tile";
+      updatePreview();
+      generate();
+    }
+
+    el("generateBtn").addEventListener("click", generate);
+    el("sampleBtn").addEventListener("click", resetSamples);
+
+    el("downloadTilesetBtn").addEventListener("click", () => {
+      if (!currentTilesetText) generate();
+      downloadText("tileset.json", currentTilesetText);
+    });
+
+    el("downloadConfigBtn").addEventListener("click", () => {
+      if (!currentConfigText) generate();
+      downloadText("stage2_config.json", currentConfigText);
+    });
+
+    [
+      glbFile, splitMode, refineMode, maxTriangles, maxDepth, targetSize, tilePrefix,
+      longitude, latitude, height, heading, pitch, roll, scale
+    ].forEach(node => {
+      node.addEventListener("change", updatePreview);
+      node.addEventListener("input", updatePreview);
+    });
+
+    resetSamples();
+  </script>
+</body>
+</html>
