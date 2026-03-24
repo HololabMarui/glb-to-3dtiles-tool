@@ -943,69 +943,83 @@ py -3 -m http.server 8000</pre>
       });
     }
 
-    function initMap() {
-      try {
-        if (viewer) {
-          viewer.destroy();
-          viewer = null;
-        }
-
-        const imageryProvider = createImageryProvider();
-
-        viewer = new Cesium.Viewer("cesiumContainer", {
-          timeline: false,
-          animation: false,
-          geocoder: true,
-          homeButton: true,
-          sceneModePicker: false,
-          baseLayerPicker: false,
-          navigationHelpButton: false,
-          selectionIndicator: false,
-          infoBox: false,
-          imageryProvider: imageryProvider,
-          terrainProvider: new Cesium.EllipsoidTerrainProvider()
-        });
-
-        viewer.scene.globe.depthTestAgainstTerrain = false;
-
-        if (handler) handler.destroy();
-        handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-
-        handler.setInputAction((click) => {
-          if (!clickPickMode) return;
-
-          const cartesian = viewer.camera.pickEllipsoid(
-            click.position,
-            viewer.scene.globe.ellipsoid
-          );
-
-          if (!cartesian) return;
-
-          const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-          const lon = Cesium.Math.toDegrees(cartographic.longitude);
-          const lat = Cesium.Math.toDegrees(cartographic.latitude);
-
-          fields.lon.value = lon.toFixed(6);
-          fields.lat.value = lat.toFixed(6);
-
-          clickPickMode = false;
-          el("mapStatus").textContent =
-            `地図クリックで位置を更新しました。\nLon: ${fields.lon.value}, Lat: ${fields.lat.value}`;
-
-          refresh();
-        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-        flyToCurrentLocation();
-        refresh();
-
-        el("mapStatus").textContent =
-          "地図を初期化しました。OSMベースマップ上で位置合わせできます。";
-      } catch (err) {
-        console.error(err);
-        el("mapStatus").textContent =
-          "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
-      }
+function initMap() {
+  try {
+    if (viewer) {
+      viewer.destroy();
+      viewer = null;
     }
+
+    viewer = new Cesium.Viewer("cesiumContainer", {
+      timeline: false,
+      animation: false,
+      geocoder: true,
+      homeButton: true,
+      sceneModePicker: false,
+      baseLayerPicker: false,
+      navigationHelpButton: false,
+      selectionIndicator: false,
+      infoBox: false,
+      terrainProvider: new Cesium.EllipsoidTerrainProvider()
+    });
+
+    viewer.imageryLayers.removeAll();
+
+    if (fields.imageryMode.value === "osm") {
+      viewer.imageryLayers.addImageryProvider(
+        new Cesium.OpenStreetMapImageryProvider({
+          url: "https://tile.openstreetmap.org/"
+        })
+      );
+    }
+
+    viewer.scene.globe.depthTestAgainstTerrain = false;
+
+    if (handler) handler.destroy();
+    handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+    handler.setInputAction((click) => {
+      if (!clickPickMode) return;
+
+      const cartesian = viewer.camera.pickEllipsoid(
+        click.position,
+        viewer.scene.globe.ellipsoid
+      );
+
+      if (!cartesian) return;
+
+      const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+      const lon = Cesium.Math.toDegrees(cartographic.longitude);
+      const lat = Cesium.Math.toDegrees(cartographic.latitude);
+
+      fields.lon.value = lon.toFixed(6);
+      fields.lat.value = lat.toFixed(6);
+
+      clickPickMode = false;
+      el("mapStatus").textContent =
+        `地図クリックで位置を更新しました。\nLon: ${fields.lon.value}, Lat: ${fields.lat.value}`;
+
+      refresh();
+    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+    viewer.camera.flyTo({
+      destination: Cesium.Cartesian3.fromDegrees(
+        Number(fields.lon.value),
+        Number(fields.lat.value),
+        Math.max(300, Number(fields.height.value) + 1200)
+      )
+    });
+
+    refresh();
+
+    el("mapStatus").textContent =
+      "地図を初期化しました。OSMベースマップ上で位置合わせできます。";
+  } catch (err) {
+    console.error(err);
+    el("mapStatus").textContent =
+      "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
+  }
+}
 
     function flyToCurrentLocation() {
       if (!viewer) return;
