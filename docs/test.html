@@ -339,7 +339,7 @@
       <div class="hero-overlay">
         <h1>GLB to 3D Tiles Helper</h1>
         <p class="lead">
-          Cesium ion 非依存で、OSMベースマップ上に地理配置つき 3D Tiles の設定確認を行うための支援ページです。
+          Cesium ion 非依存で、OSMベースマップ上に地理配置つき 3D Tiles の設定確認と GLB 仮配置を行うための支援ページです。
         </p>
       </div>
     </div>
@@ -424,8 +424,9 @@ py -3 -m http.server 8000</pre>
         </div>
 
         <div class="notice" style="margin-bottom:16px;">
-          この段階では <strong>OSMベースマップ上で位置合わせ</strong> ができます。  
-          ただし、<strong>GLB の自動分割 / 複数 B3DM 生成は未接続</strong> です。  
+          この段階では <strong>OSMベースマップ上で位置合わせ</strong> と
+          <strong>GLB の仮配置表示</strong> ができます。<br>
+          ただし、<strong>GLB の自動分割 / 複数 B3DM 生成は未接続</strong> です。<br>
           地図で確認した位置・姿勢から、<strong>tileset.json 雛形と設定JSON</strong> を出力します。
         </div>
 
@@ -623,7 +624,7 @@ py -3 -m http.server 8000</pre>
           <section class="subsection">
             <h3>5. 実行・保存</h3>
             <div class="buttons">
-              <button class="action" id="generateBtn" type="button">JSON生成</button>
+              <button class="action" id="generateBtn" type="button">JSON生成 / GLB再配置</button>
               <button class="action ghost" id="downloadTilesetBtn" type="button">tileset.json を保存</button>
               <button class="action ghost" id="downloadConfigBtn" type="button">設定JSONを保存</button>
             </div>
@@ -660,6 +661,8 @@ py -3 -m http.server 8000</pre>
     let viewer = null;
     let markerEntity = null;
     let previewEntity = null;
+    let glbModel = null;
+    let glbObjectUrl = null;
     let clickPickMode = false;
     let handler = null;
 
@@ -826,7 +829,7 @@ py -3 -m http.server 8000</pre>
           tilePrefix: fields.tilePrefix.value.trim(),
           tileCountHint: fields.tileCountHint.value.trim() || null,
           mapProvider: fields.imageryMode.value,
-          note: "OSM地図位置合わせUI。複数b3dm生成は未接続。"
+          note: "OSM地図位置合わせUI。GLB仮配置あり。複数b3dm生成は未接続。"
         },
         geometricError: 500,
         root: {
@@ -901,19 +904,22 @@ py -3 -m http.server 8000</pre>
         runtime: {
           os: currentOs === "win" ? "windows" : "mac-linux",
           mapProvider: fields.imageryMode.value,
-          terrainMode: fields.mapHeightMode.value
+          terrainMode: fields.mapHeightMode.value,
+          glbPreview: !!fields.glbFile.files[0]
         }
       };
     }
 
-    function refresh() {
+    async function refresh() {
       const tilesetObj = buildTilesetObject();
       const configObj = buildConfigObject();
       currentTilesetText = JSON.stringify(tilesetObj, null, 2);
       currentConfigText = JSON.stringify(configObj, null, 2);
       el("tilesetPreview").textContent = currentTilesetText;
       el("configPreview").textContent = currentConfigText;
+
       updateMapPreview();
+      await updateGlbPreview();
     }
 
     function downloadText(filename, text, mime = "application/json") {
@@ -931,7 +937,6 @@ py -3 -m http.server 8000</pre>
     function syncGlbNameFromFile() {
       const file = fields.glbFile.files[0];
       if (file) fields.glbName.value = file.name;
-      refresh();
     }
 
     function createImageryProvider() {
@@ -943,83 +948,86 @@ py -3 -m http.server 8000</pre>
       });
     }
 
-function initMap() {
-  try {
-    if (viewer) {
-      viewer.destroy();
-      viewer = null;
+    async function initMap() {
+      try {
+        if (viewer) {
+          if (handler) {
+            handler.destroy();
+            handler = null;
+          }
+          viewer.destroy();
+          viewer = null;
+        }
+
+        viewer = new Cesium.Viewer("cesiumContainer", {
+          timeline: false,
+          animation: false,
+          geocoder: true,
+          homeButton: true,
+          sceneModePicker: false,
+          baseLayerPicker: false,
+          navigationHelpButton: false,
+          selectionIndicator: false,
+          infoBox: false,
+          terrainProvider: new Cesium.EllipsoidTerrainProvider()
+        });
+
+        viewer.imageryLayers.removeAll();
+
+        if (fields.imageryMode.value === "osm") {
+          viewer.imageryLayers.addImageryProvider(
+            new Cesium.OpenStreetMapImageryProvider({
+              url: "https://tile.openstreetmap.org/"
+            })
+          );
+        }
+
+        viewer.scene.globe.depthTestAgainstTerrain = false;
+
+        handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
+
+        handler.setInputAction(async (click) => {
+          if (!clickPickMode) return;
+
+          const cartesian = viewer.camera.pickEllipsoid(
+            click.position,
+            viewer.scene.globe.ellipsoid
+          );
+
+          if (!cartesian) return;
+
+          const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
+          const lon = Cesium.Math.toDegrees(cartographic.longitude);
+          const lat = Cesium.Math.toDegrees(cartographic.latitude);
+
+          fields.lon.value = lon.toFixed(6);
+          fields.lat.value = lat.toFixed(6);
+
+          clickPickMode = false;
+          el("mapStatus").textContent =
+            `地図クリックで位置を更新しました。\nLon: ${fields.lon.value}, Lat: ${fields.lat.value}`;
+
+          await refresh();
+        }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
+
+        viewer.camera.flyTo({
+          destination: Cesium.Cartesian3.fromDegrees(
+            Number(fields.lon.value),
+            Number(fields.lat.value),
+            Math.max(300, Number(fields.height.value) + 1200)
+          )
+        });
+
+        await refresh();
+
+        el("mapStatus").textContent =
+          "地図を初期化しました。OSMベースマップ上で位置合わせできます。";
+      } catch (err) {
+        console.error(err);
+        el("mapStatus").textContent =
+          "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
+      }
     }
-
-    viewer = new Cesium.Viewer("cesiumContainer", {
-      timeline: false,
-      animation: false,
-      geocoder: true,
-      homeButton: true,
-      sceneModePicker: false,
-      baseLayerPicker: false,
-      navigationHelpButton: false,
-      selectionIndicator: false,
-      infoBox: false,
-      terrainProvider: new Cesium.EllipsoidTerrainProvider()
-    });
-
-    viewer.imageryLayers.removeAll();
-
-    if (fields.imageryMode.value === "osm") {
-      viewer.imageryLayers.addImageryProvider(
-        new Cesium.OpenStreetMapImageryProvider({
-          url: "https://tile.openstreetmap.org/"
-        })
-      );
-    }
-
-    viewer.scene.globe.depthTestAgainstTerrain = false;
-
-    if (handler) handler.destroy();
-    handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
-
-    handler.setInputAction((click) => {
-      if (!clickPickMode) return;
-
-      const cartesian = viewer.camera.pickEllipsoid(
-        click.position,
-        viewer.scene.globe.ellipsoid
-      );
-
-      if (!cartesian) return;
-
-      const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
-      const lon = Cesium.Math.toDegrees(cartographic.longitude);
-      const lat = Cesium.Math.toDegrees(cartographic.latitude);
-
-      fields.lon.value = lon.toFixed(6);
-      fields.lat.value = lat.toFixed(6);
-
-      clickPickMode = false;
-      el("mapStatus").textContent =
-        `地図クリックで位置を更新しました。\nLon: ${fields.lon.value}, Lat: ${fields.lat.value}`;
-
-      refresh();
-    }, Cesium.ScreenSpaceEventType.LEFT_CLICK);
-
-    viewer.camera.flyTo({
-      destination: Cesium.Cartesian3.fromDegrees(
-        Number(fields.lon.value),
-        Number(fields.lat.value),
-        Math.max(300, Number(fields.height.value) + 1200)
-      )
-    });
-
-    refresh();
-
-    el("mapStatus").textContent =
-      "地図を初期化しました。OSMベースマップ上で位置合わせできます。";
-  } catch (err) {
-    console.error(err);
-    el("mapStatus").textContent =
-      "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
-  }
-}
 
     function flyToCurrentLocation() {
       if (!viewer) return;
@@ -1081,7 +1089,7 @@ function initMap() {
           orientation: orientation,
           box: {
             dimensions: new Cesium.Cartesian3(30 * scale, 20 * scale, 15 * scale),
-            material: Cesium.Color.CYAN.withAlpha(0.35),
+            material: Cesium.Color.CYAN.withAlpha(0.20),
             outline: true,
             outlineColor: Cesium.Color.WHITE
           }
@@ -1089,12 +1097,78 @@ function initMap() {
       } else {
         previewEntity.position = pos;
         previewEntity.orientation = orientation;
-        previewEntity.box.dimensions = new Cesium.Cartesian3(30 * scale, 20 * scale, 15 * scale);
+        previewEntity.box.dimensions = new Cesium.Cartesian3(
+          30 * scale,
+          20 * scale,
+          15 * scale
+        );
+      }
+    }
+
+    async function updateGlbPreview() {
+      if (!viewer) return;
+
+      const file = fields.glbFile.files[0];
+      if (!file) {
+        if (glbModel) {
+          viewer.scene.primitives.remove(glbModel);
+          glbModel = null;
+        }
+        if (glbObjectUrl) {
+          URL.revokeObjectURL(glbObjectUrl);
+          glbObjectUrl = null;
+        }
+        return;
       }
 
-      el("mapStatus").textContent =
-        `位置合わせプレビュー更新\nLon: ${lon.toFixed(6)}, Lat: ${lat.toFixed(6)}, Height: ${h}
-Heading: ${heading}, Pitch: ${pitch}, Roll: ${roll}, Scale: ${scale}`;
+      try {
+        if (glbModel) {
+          viewer.scene.primitives.remove(glbModel);
+          glbModel = null;
+        }
+
+        if (glbObjectUrl) {
+          URL.revokeObjectURL(glbObjectUrl);
+          glbObjectUrl = null;
+        }
+
+        glbObjectUrl = URL.createObjectURL(file);
+
+        const position = Cesium.Cartesian3.fromDegrees(
+          Number(fields.lon.value),
+          Number(fields.lat.value),
+          Number(fields.height.value)
+        );
+
+        const hpr = new Cesium.HeadingPitchRoll(
+          Cesium.Math.toRadians(Number(fields.heading.value)),
+          Cesium.Math.toRadians(Number(fields.pitch.value)),
+          Cesium.Math.toRadians(Number(fields.roll.value))
+        );
+
+        const modelMatrix = Cesium.Transforms.headingPitchRollToFixedFrame(
+          position,
+          hpr
+        );
+
+        glbModel = await Cesium.Model.fromGltfAsync({
+          url: glbObjectUrl,
+          modelMatrix: modelMatrix,
+          scale: Number(fields.scale.value) || 1,
+          minimumPixelSize: 64
+        });
+
+        viewer.scene.primitives.add(glbModel);
+
+        el("mapStatus").textContent =
+          `GLB を地図上に仮配置しました。
+Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}
+Heading: ${fields.heading.value}, Pitch: ${fields.pitch.value}, Roll: ${fields.roll.value}, Scale: ${fields.scale.value}`;
+      } catch (err) {
+        console.error(err);
+        el("mapStatus").textContent =
+          "GLB の描画に失敗しました。GLB の内容やブラウザコンソールを確認してください。";
+      }
     }
 
     function enablePickMode() {
@@ -1131,29 +1205,42 @@ Heading: ${heading}, Pitch: ${pitch}, Roll: ${roll}, Scale: ${scale}`;
     el("pickOnMapBtn").addEventListener("click", enablePickMode);
     el("flyBtn").addEventListener("click", flyToCurrentLocation);
 
-    el("generateBtn").addEventListener("click", refresh);
+    el("generateBtn").addEventListener("click", async () => {
+      await refresh();
+    });
+
     el("downloadTilesetBtn").addEventListener("click", () => {
-      if (!currentTilesetText) refresh();
+      if (!currentTilesetText) return;
       downloadText(fields.tilesetName.value.trim() || "tileset.json", currentTilesetText);
     });
+
     el("downloadConfigBtn").addEventListener("click", () => {
-      if (!currentConfigText) refresh();
+      if (!currentConfigText) return;
       downloadText("stage2_config.json", currentConfigText);
     });
 
-    fields.glbFile.addEventListener("change", syncGlbNameFromFile);
+    fields.glbFile.addEventListener("change", async () => {
+      syncGlbNameFromFile();
+      await refresh();
+    });
 
     Object.values(fields).forEach((input) => {
       if (input && input.id !== "glbFile") {
-        input.addEventListener("input", refresh);
-        input.addEventListener("change", refresh);
+        input.addEventListener("input", async () => {
+          await refresh();
+        });
+        input.addEventListener("change", async () => {
+          await refresh();
+        });
       }
     });
 
-    setMainTab("tool");
-    setGuideOs("mac");
-    setToolOs("mac");
-    refresh();
+    (async () => {
+      setMainTab("tool");
+      setGuideOs("mac");
+      setToolOs("mac");
+      await refresh();
+    })();
   </script>
 </body>
 </html>
