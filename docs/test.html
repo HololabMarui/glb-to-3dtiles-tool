@@ -21,6 +21,9 @@
       --accent: #6ea8fe;
       --border: #2b3563;
       --shadow: 0 10px 25px rgba(0,0,0,0.18);
+      --warn-bg: rgba(255, 209, 102, 0.08);
+      --warn-border: rgba(255, 209, 102, 0.35);
+      --warn-text: #ffe5a4;
     }
 
     * { box-sizing: border-box; }
@@ -31,6 +34,10 @@
       background: linear-gradient(180deg, #0b1020 0%, #101733 100%);
       color: var(--text);
       line-height: 1.5;
+    }
+
+    code, pre {
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     .wrap {
@@ -168,6 +175,17 @@
       margin-bottom: 6px;
     }
 
+    .label-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+    }
+
+    .label-row label {
+      margin-bottom: 0;
+    }
+
     input, select {
       width: 100%;
       border: 1px solid var(--border);
@@ -213,9 +231,9 @@
     }
 
     .notice {
-      border: 1px solid rgba(255, 209, 102, 0.35);
-      background: rgba(255, 209, 102, 0.08);
-      color: #ffe5a4;
+      border: 1px solid var(--warn-border);
+      background: var(--warn-bg);
+      color: var(--warn-text);
       border-radius: 14px;
       padding: 14px;
       font-size: 13px;
@@ -235,6 +253,57 @@
       border-radius: 16px;
       overflow: hidden;
       background: #08101f;
+    }
+
+    .help-wrap {
+      position: relative;
+      display: inline-flex;
+      align-items: center;
+    }
+
+    .help-btn {
+      width: 20px;
+      height: 20px;
+      padding: 0;
+      border-radius: 999px;
+      background: rgba(110,168,254,.18);
+      color: #dce9ff;
+      border: 1px solid rgba(110,168,254,.35);
+      font-size: 12px;
+      line-height: 20px;
+      display: inline-grid;
+      place-items: center;
+      cursor: pointer;
+    }
+
+    .tooltip {
+      position: absolute;
+      z-index: 30;
+      top: calc(100% + 8px);
+      left: 0;
+      width: 280px;
+      padding: 10px 12px;
+      border-radius: 12px;
+      background: #0a132a;
+      border: 1px solid rgba(255,255,255,.1);
+      color: #d9e6ff;
+      font-size: 12px;
+      line-height: 1.6;
+      box-shadow: 0 14px 28px rgba(0,0,0,.35);
+      opacity: 0;
+      visibility: hidden;
+      transform: translateY(-4px);
+      transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
+      pointer-events: none;
+    }
+
+    .help-wrap:hover .tooltip,
+    .help-wrap:focus-within .tooltip,
+    .help-wrap.open .tooltip {
+      opacity: 1;
+      visibility: visible;
+      transform: translateY(0);
+      pointer-events: auto;
     }
 
     .map-controls {
@@ -326,7 +395,7 @@
       <div class="hero-overlay">
         <h1>GLB to 3D Tiles Helper</h1>
         <p class="lead">
-          左で変換条件、右で地図作業と出力確認を行う構成です。
+          左で変換条件、右で地図作業と出力確認を行う構成です。設定JSONを保存し、ローカルのPythonスクリプトで変換を実行します。
         </p>
       </div>
     </div>
@@ -339,7 +408,56 @@
     <section id="page-guide" class="stack" style="display:none;">
       <section class="card">
         <h2>環境構築ガイド</h2>
-        <p class="note">この版ではガイド内容を簡略化しています。</p>
+        <div class="subsection">
+          <h3>準備するもの</h3>
+          <div class="note">
+            <div>・Python 3.x</div>
+            <div>・このページで保存した <code>stage2_config.json</code></div>
+            <div>・変換スクリプト <code>build_stage2_tiles.py</code></div>
+            <div>・依存パッケージ定義 <code>requirements.txt</code></div>
+            <div>・変換対象の <code>.glb</code> ファイル</div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>Mac / Linux</h3>
+<pre>python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python build_stage2_tiles.py stage2_config.json</pre>
+        </div>
+
+        <div class="subsection">
+          <h3>Windows</h3>
+<pre>py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python build_stage2_tiles.py stage2_config.json</pre>
+        </div>
+
+        <div class="subsection">
+          <h3>実行前の確認</h3>
+          <div class="note">
+            <div>・<code>stage2_config.json</code> の <code>sourceGlb</code> が実在するローカルパスになっていること</div>
+            <div>・<code>output.outDir</code> が書き込み可能なフォルダであること</div>
+            <div>・<code>output.outputFormat</code> が <code>glb</code> または <code>b3dm</code> になっていること</div>
+          </div>
+        </div>
+
+        <div class="subsection">
+          <h3>requirements.txt の例</h3>
+<pre>trimesh
+numpy
+pygltflib</pre>
+        </div>
+
+        <div class="subsection">
+          <h3>出力されるもの</h3>
+          <div class="note">
+            <div>・<code>tileset.json</code></div>
+            <div>・分割されたタイル群（<code>.glb</code> または <code>.b3dm</code>）</div>
+          </div>
+        </div>
       </section>
     </section>
 
@@ -354,7 +472,7 @@
           </div>
 
           <div class="notice" style="margin-bottom:16px;">
-            地図上で位置合わせと GLB の仮配置表示ができます。
+            地図上で位置合わせと GLB の仮配置表示ができます。設定を保存したら、ローカルの Python スクリプトで変換してください。
           </div>
 
           <div class="stack">
@@ -362,23 +480,30 @@
               <h3>入力GLB</h3>
               <div class="row">
                 <div>
-                  <label for="glbFile">入力GLBファイル</label>
+                  <label for="glbFile">入力GLBファイル（プレビュー用）</label>
                   <input id="glbFile" type="file" accept=".glb,.gltf" />
                 </div>
                 <div>
-                  <label for="glbName">入力GLBファイル名（手入力可）</label>
+                  <label for="glbName">入力GLBファイル名（表示用）</label>
                   <input id="glbName" value="your_model.glb" />
                 </div>
               </div>
               <div class="row">
                 <div>
+                  <label for="sourceGlbPath">入力GLBパス（Python変換用）</label>
+                  <input id="sourceGlbPath" placeholder="/path/to/model.glb または C:\path\to\model.glb" />
+                </div>
+                <div>
                   <label for="outDir">出力フォルダ名</label>
                   <input id="outDir" value="out_tiles" />
                 </div>
+              </div>
+              <div class="row">
                 <div>
                   <label for="tilePrefix">タイル接頭辞</label>
                   <input id="tilePrefix" value="tile" />
                 </div>
+                <div></div>
               </div>
             </section>
 
@@ -392,7 +517,11 @@
                     <option value="b3dm">3D Tiles（B3DM content）</option>
                   </select>
                 </div>
-                <div></div>
+                <div>
+                  <div class="note" style="margin-top:28px;">
+                    GLB content は新しめの構成、B3DM content は既存互換向けです。
+                  </div>
+                </div>
               </div>
             </section>
 
@@ -497,6 +626,53 @@
                 <button class="action ghost" id="downloadConfigBtn" type="button">設定JSONを保存</button>
               </div>
             </section>
+
+            <section class="subsection">
+              <h3>Pythonで変換する手順</h3>
+              <pre id="pythonCommandPreview">python build_stage2_tiles.py stage2_config.json</pre>
+              <p class="mini-note">
+                まずこのページで <code>stage2_config.json</code> を保存し、その後ローカルで上記コマンドを実行します。
+              </p>
+            </section>
+          </div>
+        </section>
+
+        <section class="card">
+          <h2>Pythonで変換する手順</h2>
+
+          <div class="subsection">
+            <h3>準備するもの</h3>
+            <div class="note">
+              <div>・このページで保存した <code>stage2_config.json</code></div>
+              <div>・変換スクリプト <code>build_stage2_tiles.py</code></div>
+              <div>・依存パッケージ定義 <code>requirements.txt</code></div>
+              <div>・変換対象の <code>.glb</code> ファイル</div>
+            </div>
+          </div>
+
+          <div class="subsection">
+            <h3>Mac / Linux</h3>
+<pre>python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
+python build_stage2_tiles.py stage2_config.json</pre>
+          </div>
+
+          <div class="subsection">
+            <h3>Windows</h3>
+<pre>py -3 -m venv .venv
+.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python build_stage2_tiles.py stage2_config.json</pre>
+          </div>
+
+          <div class="subsection">
+            <h3>実行前の確認</h3>
+            <div class="note">
+              <div>・<code>sourceGlb</code> が実在するローカルパスになっていること</div>
+              <div>・<code>output.outDir</code> が書き込み可能なフォルダであること</div>
+              <div>・<code>output.outputFormat</code> が <code>glb</code> または <code>b3dm</code> になっていること</div>
+            </div>
           </div>
         </section>
       </section>
@@ -628,6 +804,7 @@
       mapHeightMode: el("mapHeightMode"),
       glbFile: el("glbFile"),
       glbName: el("glbName"),
+      sourceGlbPath: el("sourceGlbPath"),
       outDir: el("outDir"),
       tilePrefix: el("tilePrefix"),
       outputFormat: el("outputFormat"),
@@ -666,10 +843,8 @@
 
     function setToolOs(os) {
       currentOs = os;
-      const macBtn = el("os-mac");
-      const winBtn = el("os-win");
-      if (macBtn) macBtn.classList.toggle("active", os === "mac");
-      if (winBtn) winBtn.classList.toggle("active", os === "win");
+      el("os-mac")?.classList.toggle("active", os === "mac");
+      el("os-win")?.classList.toggle("active", os === "win");
       refreshJsonOnly();
     }
 
@@ -820,7 +995,7 @@
         extras: {
           stage: 2,
           outputFormat: fields.outputFormat.value,
-          sourceGlb: fields.glbName.value.trim() || null,
+          sourceGlb: fields.sourceGlbPath.value.trim() || fields.glbName.value.trim() || null,
           splitMode: fields.splitMode.value,
           maxTrianglesPerLeaf: Number(fields.maxTriangles.value),
           maxDepth: Number(fields.maxDepth.value),
@@ -854,7 +1029,7 @@
 
     function buildConfigObject() {
       return {
-        sourceGlb: fields.glbName.value.trim() || null,
+        sourceGlb: fields.sourceGlbPath.value.trim() || fields.glbName.value.trim() || null,
         output: {
           outDir: fields.outDir.value.trim(),
           tilesetName: fields.tilesetName.value.trim(),
@@ -887,11 +1062,20 @@
       };
     }
 
+    function refreshCommandPreview() {
+      const cmd = currentOs === "win"
+        ? "python build_stage2_tiles.py stage2_config.json"
+        : "python build_stage2_tiles.py stage2_config.json";
+      const node = el("pythonCommandPreview");
+      if (node) node.textContent = cmd;
+    }
+
     function refreshJsonOnly() {
       currentTilesetText = JSON.stringify(buildTilesetObject(), null, 2);
       currentConfigText = JSON.stringify(buildConfigObject(), null, 2);
       el("tilesetPreview").textContent = currentTilesetText;
       el("configPreview").textContent = currentConfigText;
+      refreshCommandPreview();
       updateModeIndicators();
     }
 
