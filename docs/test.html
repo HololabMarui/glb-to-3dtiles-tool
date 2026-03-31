@@ -20,8 +20,6 @@
       --muted: #a8b3cf;
       --accent: #6ea8fe;
       --border: #2b3563;
-      --ok: #7bd88f;
-      --warn: #ffd166;
       --shadow: 0 10px 25px rgba(0,0,0,0.18);
     }
 
@@ -33,10 +31,6 @@
       background: linear-gradient(180deg, #0b1020 0%, #101733 100%);
       color: var(--text);
       line-height: 1.5;
-    }
-
-    code, pre {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
     }
 
     .wrap {
@@ -72,7 +66,7 @@
     .hero h1 {
       margin: 0 0 8px;
       font-size: 42px;
-      color: #ffffff;
+      color: #fff;
       text-shadow: 0 2px 10px rgba(0,0,0,0.45);
     }
 
@@ -102,9 +96,7 @@
       cursor: pointer;
     }
 
-    .pillbar button:last-child {
-      border-right: 0;
-    }
+    .pillbar button:last-child { border-right: 0; }
 
     .pillbar button.active {
       background: var(--accent);
@@ -124,12 +116,24 @@
       gap: 16px;
     }
 
+    .right-grid {
+      display: grid;
+      gap: 16px;
+    }
+
     .card {
       background: rgba(18, 25, 51, 0.92);
       border: 1px solid var(--border);
       border-radius: 18px;
       padding: 20px;
       box-shadow: var(--shadow);
+    }
+
+    .subsection {
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 16px;
+      background: rgba(255,255,255,0.02);
     }
 
     .card h2 {
@@ -141,13 +145,6 @@
     .card h3 {
       margin: 0 0 10px;
       font-size: 16px;
-    }
-
-    .subsection {
-      border: 1px solid var(--border);
-      border-radius: 16px;
-      padding: 16px;
-      background: rgba(255,255,255,0.02);
     }
 
     .row {
@@ -171,18 +168,7 @@
       margin-bottom: 6px;
     }
 
-    .label-row {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 6px;
-    }
-
-    .label-row label {
-      margin-bottom: 0;
-    }
-
-    input, select, textarea {
+    input, select {
       width: 100%;
       border: 1px solid var(--border);
       border-radius: 12px;
@@ -236,17 +222,9 @@
       line-height: 1.7;
     }
 
-    .note {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 10px;
-      line-height: 1.7;
-    }
-
-    .mini-note {
+    .note, .mini-note {
       font-size: 12px;
       color: var(--muted);
-      margin-top: 6px;
       line-height: 1.6;
     }
 
@@ -257,62 +235,6 @@
       border-radius: 16px;
       overflow: hidden;
       background: #08101f;
-    }
-
-    .help-wrap {
-      position: relative;
-      display: inline-flex;
-      align-items: center;
-    }
-
-    .help-btn {
-      width: 20px;
-      height: 20px;
-      padding: 0;
-      border-radius: 999px;
-      background: rgba(110,168,254,.18);
-      color: #dce9ff;
-      border: 1px solid rgba(110,168,254,.35);
-      font-size: 12px;
-      line-height: 20px;
-      display: inline-grid;
-      place-items: center;
-      cursor: pointer;
-    }
-
-    .tooltip {
-      position: absolute;
-      z-index: 30;
-      top: calc(100% + 8px);
-      left: 0;
-      width: 280px;
-      padding: 10px 12px;
-      border-radius: 12px;
-      background: #0a132a;
-      border: 1px solid rgba(255,255,255,.1);
-      color: #d9e6ff;
-      font-size: 12px;
-      line-height: 1.6;
-      box-shadow: 0 14px 28px rgba(0,0,0,.35);
-      opacity: 0;
-      visibility: hidden;
-      transform: translateY(-4px);
-      transition: opacity .15s ease, transform .15s ease, visibility .15s ease;
-      pointer-events: none;
-    }
-
-    .help-wrap:hover .tooltip,
-    .help-wrap:focus-within .tooltip,
-    .help-wrap.open .tooltip {
-      opacity: 1;
-      visibility: visible;
-      transform: translateY(0);
-      pointer-events: auto;
-    }
-
-    .right-grid {
-      display: grid;
-      gap: 16px;
     }
 
     .map-controls {
@@ -389,11 +311,9 @@
         flex-direction: column;
         align-items: stretch;
       }
-
       .map-badges {
         justify-content: flex-start;
       }
-
       .map-status-compact {
         white-space: normal;
       }
@@ -406,7 +326,6 @@
       <div class="hero-overlay">
         <h1>GLB to 3D Tiles Helper</h1>
         <p class="lead">
-          Cesium ion 非依存で、OSM ベースマップ上に地理配置つき 3D Tiles の設定確認と GLB 仮配置を行うための支援ページです。
           左で変換条件、右で地図作業と出力確認を行う構成です。
         </p>
       </div>
@@ -419,10 +338,8 @@
 
     <section id="page-guide" class="stack" style="display:none;">
       <section class="card">
-        <h2>概要</h2>
-        <p class="note">
-          このページは、環境構築の確認と変換条件の整理・JSON雛形生成を目的にした GitHub Pages 向けUIです。
-        </p>
+        <h2>環境構築ガイド</h2>
+        <p class="note">この版ではガイド内容を簡略化しています。</p>
       </section>
     </section>
 
@@ -431,13 +348,13 @@
         <section class="card">
           <h2>変換設定</h2>
 
-          <div class="pillbar" role="tablist" aria-label="OS選択">
+          <div class="pillbar" aria-label="OS選択">
             <button id="os-mac" class="active" type="button">Mac / Linux</button>
             <button id="os-win" type="button">Windows</button>
           </div>
 
           <div class="notice" style="margin-bottom:16px;">
-            この段階では地図上で位置合わせと GLB の仮配置表示ができます。まだ GLB の自動分割 / 複数タイル生成は未接続です。
+            地図上で位置合わせと GLB の仮配置表示ができます。
           </div>
 
           <div class="stack">
@@ -475,11 +392,7 @@
                     <option value="b3dm">3D Tiles（B3DM content）</option>
                   </select>
                 </div>
-                <div>
-                  <div class="note" style="margin-top:28px;">
-                    GLB content は新しめの構成、B3DM content は既存互換向けです。
-                  </div>
-                </div>
+                <div></div>
               </div>
             </section>
 
@@ -530,31 +443,14 @@
               <h3>分割条件</h3>
               <div class="row">
                 <div>
-                  <div class="label-row">
-                    <label for="splitMode">分割方式</label>
-                    <div class="help-wrap">
-                      <button class="help-btn" type="button">?</button>
-                      <div class="tooltip">
-                        モデルをどの単位で分割するかの指定です。現状の変換スクリプト骨組みでは主に quadtree を想定しています。
-                      </div>
-                    </div>
-                  </div>
+                  <label for="splitMode">分割方式</label>
                   <select id="splitMode">
                     <option value="quadtree">Quadtree</option>
                     <option value="octree">Octree</option>
                   </select>
                 </div>
-
                 <div>
-                  <div class="label-row">
-                    <label for="refineMode">Refine</label>
-                    <div class="help-wrap">
-                      <button class="help-btn" type="button">?</button>
-                      <div class="tooltip">
-                        子タイル表示時に親タイルをどう扱うかを示します。
-                      </div>
-                    </div>
-                  </div>
+                  <label for="refineMode">Refine</label>
                   <select id="refineMode">
                     <option value="ADD">ADD</option>
                     <option value="REPLACE">REPLACE</option>
@@ -758,21 +654,23 @@
     };
 
     function setMainTab(tab) {
-      el("tab-guide").classList.toggle("active", tab === "guide");
-      el("tab-tool").classList.toggle("active", tab === "tool");
-      el("page-guide").style.display = tab === "guide" ? "" : "none";
-      el("page-tool").style.display = tab === "tool" ? "grid" : "none";
-    }
-
-    function setGuideOs(os) {
-      el("guide-os-mac").classList.toggle("active", os === "mac");
-      el("guide-os-win").classList.toggle("active", os === "win");
-      el("guide-mac").style.display = os === "mac" ? "" : "none";
-      el("guide-win").style.display = os === "win" ? "" : "none";
+      const guideBtn = el("tab-guide");
+      const toolBtn = el("tab-tool");
+      const guidePage = el("page-guide");
+      const toolPage = el("page-tool");
+      if (guideBtn) guideBtn.classList.toggle("active", tab === "guide");
+      if (toolBtn) toolBtn.classList.toggle("active", tab === "tool");
+      if (guidePage) guidePage.style.display = tab === "guide" ? "" : "none";
+      if (toolPage) toolPage.style.display = tab === "tool" ? "grid" : "none";
     }
 
     function setToolOs(os) {
       currentOs = os;
+      const macBtn = el("os-mac");
+      const winBtn = el("os-win");
+      if (macBtn) macBtn.classList.toggle("active", os === "mac");
+      if (winBtn) winBtn.classList.toggle("active", os === "win");
+      refreshJsonOnly();
     }
 
     function degToRad(deg) {
@@ -1087,17 +985,11 @@
         handler = new Cesium.ScreenSpaceEventHandler(viewer.scene.canvas);
         handler.setInputAction((click) => {
           if (!clickPickMode) return;
-
-          const cartesian = viewer.camera.pickEllipsoid(
-            click.position,
-            viewer.scene.globe.ellipsoid
-          );
+          const cartesian = viewer.camera.pickEllipsoid(click.position, viewer.scene.globe.ellipsoid);
           if (!cartesian) return;
-
           const cartographic = Cesium.Cartographic.fromCartesian(cartesian);
           fields.lon.value = Cesium.Math.toDegrees(cartographic.longitude).toFixed(6);
           fields.lat.value = Cesium.Math.toDegrees(cartographic.latitude).toFixed(6);
-
           clickPickMode = false;
           refreshProxyOnly();
           refreshJsonOnly();
@@ -1107,12 +999,10 @@
         refreshProxyOnly();
         refreshJsonOnly();
 
-        el("mapStatus").textContent =
-          "地図を初期化しました。右カラムで地図・位置合わせ・JSON確認を続けられます。";
+        el("mapStatus").textContent = "地図を初期化しました。";
       } catch (err) {
         console.error(err);
-        el("mapStatus").textContent =
-          "地図初期化に失敗しました。ローカルサーバー経由で開いているか確認してください。";
+        el("mapStatus").textContent = "地図初期化に失敗しました。";
       }
     }
 
@@ -1200,8 +1090,7 @@
         });
       }
 
-      el("mapStatus").textContent =
-        `軽量代理表示を更新しました。 Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}`;
+      el("mapStatus").textContent = "軽量代理表示を更新しました。";
       updateModeIndicators();
     }
 
@@ -1215,7 +1104,7 @@
         return;
       }
       if (!shouldShowGlb()) {
-        el("mapStatus").textContent = "表示モードを「GLB 手動表示」または「両方表示」にしてください。";
+        el("mapStatus").textContent = "表示モードを変更してください。";
         updateModeIndicators();
         return;
       }
@@ -1229,7 +1118,6 @@
 
       try {
         clearGlbModel();
-
         glbObjectUrl = URL.createObjectURL(file);
 
         const position = getPositionCartesian();
@@ -1244,16 +1132,12 @@
         });
 
         viewer.scene.primitives.add(glbModel);
-
-        el("mapStatus").textContent =
-          `GLB を地図上に表示しました。 Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}`;
-
+        el("mapStatus").textContent = "GLB を地図上に表示しました。";
         updateModeIndicators();
       } catch (err) {
         console.error(err);
         clearGlbModel();
-        el("mapStatus").textContent =
-          "GLB の描画に失敗しました。GLB の内容やブラウザコンソールを確認してください。";
+        el("mapStatus").textContent = "GLB の描画に失敗しました。";
         updateModeIndicators();
       }
     }
@@ -1269,63 +1153,39 @@
       el("mapStatus").textContent = "地図上をクリックして配置位置を選んでください。";
     }
 
-    document.querySelectorAll(".help-btn").forEach((btn) => {
-      btn.addEventListener("click", (e) => {
-        e.preventDefault();
-        const wrap = btn.closest(".help-wrap");
-        const isOpen = wrap.classList.contains("open");
-        document.querySelectorAll(".help-wrap.open").forEach((node) => node.classList.remove("open"));
-        if (!isOpen) wrap.classList.add("open");
-      });
-    });
-
-    document.addEventListener("click", (e) => {
-      if (!e.target.closest(".help-wrap")) {
-        document.querySelectorAll(".help-wrap.open").forEach((node) => node.classList.remove("open"));
-      }
-    });
-
-    el("tab-guide").addEventListener("click", () => setMainTab("guide"));
-    el("tab-tool").addEventListener("click", () => setMainTab("tool"));
-
-    el("guide-os-mac").addEventListener("click", () => setGuideOs("mac"));
-    el("guide-os-win").addEventListener("click", () => setGuideOs("win"));
-
-    el("os-mac").addEventListener("click", () => setToolOs("mac"));
-    el("os-win").addEventListener("click", () => setToolOs("win"));
-
-    el("initMapBtn").addEventListener("click", initMap);
-    el("pickOnMapBtn").addEventListener("click", enablePickMode);
-    el("flyBtn").addEventListener("click", flyToCurrentLocation);
-    el("updateProxyBtn").addEventListener("click", () => {
+    el("tab-guide")?.addEventListener("click", () => setMainTab("guide"));
+    el("tab-tool")?.addEventListener("click", () => setMainTab("tool"));
+    el("os-mac")?.addEventListener("click", () => setToolOs("mac"));
+    el("os-win")?.addEventListener("click", () => setToolOs("win"));
+    el("initMapBtn")?.addEventListener("click", initMap);
+    el("pickOnMapBtn")?.addEventListener("click", enablePickMode);
+    el("flyBtn")?.addEventListener("click", flyToCurrentLocation);
+    el("updateProxyBtn")?.addEventListener("click", () => {
       refreshProxyOnly();
       refreshJsonOnly();
     });
-    el("showGlbBtn").addEventListener("click", async () => {
+    el("showGlbBtn")?.addEventListener("click", async () => {
       await showGlbPreview();
       refreshJsonOnly();
     });
-    el("hideGlbBtn").addEventListener("click", () => {
+    el("hideGlbBtn")?.addEventListener("click", () => {
       hideGlbPreview();
       refreshJsonOnly();
     });
-
-    el("generateBtn").addEventListener("click", () => {
+    el("generateBtn")?.addEventListener("click", () => {
       refreshJsonOnly();
       refreshProxyOnly();
     });
-
-    el("downloadTilesetBtn").addEventListener("click", () => {
+    el("downloadTilesetBtn")?.addEventListener("click", () => {
       if (!currentTilesetText) refreshJsonOnly();
       downloadText(fields.tilesetName.value.trim() || "tileset.json", currentTilesetText);
     });
-
-    el("downloadConfigBtn").addEventListener("click", () => {
+    el("downloadConfigBtn")?.addEventListener("click", () => {
       if (!currentConfigText) refreshJsonOnly();
       downloadText("stage2_config.json", currentConfigText);
     });
 
-    fields.glbFile.addEventListener("change", () => {
+    fields.glbFile?.addEventListener("change", () => {
       syncGlbNameFromFile();
       hideGlbPreview();
       refreshJsonOnly();
@@ -1344,7 +1204,6 @@
     });
 
     setMainTab("tool");
-    setGuideOs("mac");
     setToolOs("mac");
     refreshJsonOnly();
   </script>
