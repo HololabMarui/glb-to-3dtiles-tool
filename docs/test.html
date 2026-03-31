@@ -192,12 +192,6 @@
       font-size: 14px;
     }
 
-    textarea {
-      min-height: 180px;
-      resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-
     pre {
       margin: 0;
       white-space: pre-wrap;
@@ -256,9 +250,6 @@
       line-height: 1.6;
     }
 
-    .ok { color: var(--ok); font-weight: 700; }
-    .warn { color: var(--warn); font-weight: 700; }
-
     #cesiumContainer {
       width: 100%;
       height: 620px;
@@ -266,13 +257,6 @@
       border-radius: 16px;
       overflow: hidden;
       background: #08101f;
-    }
-
-    .status-line {
-      font-size: 13px;
-      color: var(--muted);
-      line-height: 1.7;
-      white-space: pre-wrap;
     }
 
     .help-wrap {
@@ -344,37 +328,74 @@
       gap: 16px;
     }
 
-    .kpis {
-      display: grid;
-      grid-template-columns: repeat(3, 1fr);
-      gap: 10px;
-      margin-top: 10px;
-    }
-
-    .kpi {
+    .map-topbar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 12px;
+      margin-bottom: 12px;
+      padding: 10px 12px;
       border: 1px solid var(--border);
       border-radius: 14px;
-      padding: 10px 12px;
-      background: rgba(255,255,255,0.02);
+      background: rgba(255,255,255,0.03);
     }
 
-    .kpi .k {
+    .map-status-compact {
+      min-width: 0;
       font-size: 12px;
       color: var(--muted);
-      margin-bottom: 4px;
+      line-height: 1.5;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
     }
 
-    .kpi .v {
-      font-size: 14px;
+    .map-badges {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .map-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border: 1px solid var(--border);
+      border-radius: 999px;
+      background: rgba(255,255,255,0.02);
+      font-size: 12px;
+      color: var(--muted);
+      white-space: nowrap;
+    }
+
+    .map-badge strong {
+      color: var(--text);
       font-weight: 700;
     }
 
     @media (max-width: 1180px) {
-      .layout, .row, .row-3, .json-grid, .kpis {
+      .layout, .row, .row-3, .json-grid {
         grid-template-columns: 1fr;
       }
       #cesiumContainer {
         height: 420px;
+      }
+    }
+
+    @media (max-width: 900px) {
+      .map-topbar {
+        flex-direction: column;
+        align-items: stretch;
+      }
+
+      .map-badges {
+        justify-content: flex-start;
+      }
+
+      .map-status-compact {
+        white-space: normal;
       }
     }
   </style>
@@ -386,7 +407,7 @@
         <h1>GLB to 3D Tiles Helper</h1>
         <p class="lead">
           Cesium ion 非依存で、OSM ベースマップ上に地理配置つき 3D Tiles の設定確認と GLB 仮配置を行うための支援ページです。
-          左で変換条件、右で地図作業と出力確認を行う構成に整理しています。
+          左で変換条件、右で地図作業と出力確認を行う構成です。
         </p>
       </div>
     </div>
@@ -400,63 +421,7 @@
       <section class="card">
         <h2>概要</h2>
         <p class="note">
-          このページは、<span class="ok">環境構築の確認</span> と
-          <span class="ok">変換条件の整理・JSON雛形生成</span> を目的にした GitHub Pages 向けUIです。
-          地図表示は <span class="ok">CesiumJS + OSM</span> を前提にし、Cesium ion 依存を避けています。
-        </p>
-      </section>
-
-      <section class="card">
-        <h2>前提条件</h2>
-        <div class="note">
-          <div>・Node.js / npm がインストール済みであること</div>
-          <div>・必要に応じて Python 仮想環境が利用できること</div>
-          <div>・作業フォルダに変換対象の <code>.glb</code> があること</div>
-          <div>・作業フォルダで <code>3d-tiles-tools</code> が使えること</div>
-          <div>・ローカル確認時は <code>file://</code> 直開きより <code>http://localhost</code> 推奨</div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>セットアップ手順</h2>
-
-        <div class="pillbar" role="tablist" aria-label="OS選択">
-          <button id="guide-os-mac" class="active" type="button">Mac / Linux</button>
-          <button id="guide-os-win" type="button">Windows</button>
-        </div>
-
-        <div id="guide-mac">
-<pre>cd /your/project/path
-
-python3 -m venv .venv
-source .venv/bin/activate
-
-python -m pip install --upgrade pip
-python -m pip install trimesh numpy pygltflib
-
-npm install 3d-tiles-tools
-npx 3d-tiles-tools --help
-
-python3 -m http.server 8000</pre>
-        </div>
-
-        <div id="guide-win" style="display:none;">
-<pre>cd C:\your\project\path
-
-py -3 -m venv .venv
-.venv\Scripts\Activate.ps1
-
-python -m pip install --upgrade pip
-python -m pip install trimesh numpy pygltflib
-
-npm install 3d-tiles-tools
-npx 3d-tiles-tools --help
-
-py -3 -m http.server 8000</pre>
-        </div>
-
-        <p class="note">
-          ローカルで開くときは、ブラウザで <code>http://localhost:8000/</code> を開く形が安定です。
+          このページは、環境構築の確認と変換条件の整理・JSON雛形生成を目的にした GitHub Pages 向けUIです。
         </p>
       </section>
     </section>
@@ -472,9 +437,7 @@ py -3 -m http.server 8000</pre>
           </div>
 
           <div class="notice" style="margin-bottom:16px;">
-            この段階では <strong>地図上で位置合わせ</strong> と
-            <strong>GLB の仮配置表示</strong> ができます。<br>
-            まだ <strong>GLB の自動分割 / 複数 B3DM 生成は未接続</strong> です。
+            この段階では地図上で位置合わせと GLB の仮配置表示ができます。まだ GLB の自動分割 / 複数タイル生成は未接続です。
           </div>
 
           <div class="stack">
@@ -498,6 +461,24 @@ py -3 -m http.server 8000</pre>
                 <div>
                   <label for="tilePrefix">タイル接頭辞</label>
                   <input id="tilePrefix" value="tile" />
+                </div>
+              </div>
+            </section>
+
+            <section class="subsection">
+              <h3>出力方式</h3>
+              <div class="row">
+                <div>
+                  <label for="outputFormat">3D Tiles 出力方式</label>
+                  <select id="outputFormat">
+                    <option value="glb">3D Tiles（GLB content）</option>
+                    <option value="b3dm">3D Tiles（B3DM content）</option>
+                  </select>
+                </div>
+                <div>
+                  <div class="note" style="margin-top:28px;">
+                    GLB content は新しめの構成、B3DM content は既存互換向けです。
+                  </div>
                 </div>
               </div>
             </section>
@@ -554,7 +535,7 @@ py -3 -m http.server 8000</pre>
                     <div class="help-wrap">
                       <button class="help-btn" type="button">?</button>
                       <div class="tooltip">
-                        モデルをどの空間単位で分割するかを選びます。Quadtree は XY 平面の4分割、Octree は XYZ の8分割です。
+                        モデルをどの単位で分割するかの指定です。現状の変換スクリプト骨組みでは主に quadtree を想定しています。
                       </div>
                     </div>
                   </div>
@@ -570,7 +551,7 @@ py -3 -m http.server 8000</pre>
                     <div class="help-wrap">
                       <button class="help-btn" type="button">?</button>
                       <div class="tooltip">
-                        子タイル表示時に親タイルをどう扱うかを示します。ADD は親子を重ねる考え方、REPLACE は子が出ると親を置き換える考え方です。
+                        子タイル表示時に親タイルをどう扱うかを示します。
                       </div>
                     </div>
                   </div>
@@ -648,29 +629,31 @@ py -3 -m http.server 8000</pre>
             <button class="action" id="initMapBtn" type="button">地図を初期化</button>
           </div>
 
-          <div id="cesiumContainer"></div>
-          <div id="mapStatus" class="status-line" style="margin-top:12px;">
-            地図は未初期化です。
+          <div class="map-topbar">
+            <div id="mapStatus" class="map-status-compact">
+              地図は未初期化です。
+            </div>
+
+            <div class="map-badges">
+              <div class="map-badge">代理表示 <strong id="proxyState">未表示</strong></div>
+              <div class="map-badge">GLB表示 <strong id="glbState">未表示</strong></div>
+              <div class="map-badge">モード <strong id="modeState">軽量代理表示</strong></div>
+            </div>
           </div>
 
-          <div class="kpis">
-            <div class="kpi">
-              <div class="k">代理表示</div>
-              <div class="v" id="proxyState">未表示</div>
-            </div>
-            <div class="kpi">
-              <div class="k">GLB表示</div>
-              <div class="v" id="glbState">未表示</div>
-            </div>
-            <div class="kpi">
-              <div class="k">モード</div>
-              <div class="v" id="modeState">軽量代理表示</div>
-            </div>
-          </div>
+          <div id="cesiumContainer"></div>
         </section>
 
         <section class="card map-controls">
           <h2>位置合わせ</h2>
+
+          <div class="buttons" style="margin-top:0; margin-bottom:14px;">
+            <button class="action" id="pickOnMapBtn" type="button">地図クリックで位置を指定</button>
+            <button class="action ghost" id="flyBtn" type="button">現在位置へズーム</button>
+            <button class="action ghost" id="updateProxyBtn" type="button">代理表示を更新</button>
+            <button class="action" id="showGlbBtn" type="button">GLB を表示 / 更新</button>
+            <button class="action ghost" id="hideGlbBtn" type="button">GLB を非表示</button>
+          </div>
 
           <div class="row-3">
             <div>
@@ -709,18 +692,6 @@ py -3 -m http.server 8000</pre>
             </div>
             <div></div>
           </div>
-
-          <div class="buttons">
-            <button class="action" id="pickOnMapBtn" type="button">地図クリックで位置を指定</button>
-            <button class="action ghost" id="flyBtn" type="button">現在位置へズーム</button>
-            <button class="action ghost" id="updateProxyBtn" type="button">代理表示を更新</button>
-            <button class="action" id="showGlbBtn" type="button">GLB を表示 / 更新</button>
-            <button class="action ghost" id="hideGlbBtn" type="button">GLB を非表示</button>
-          </div>
-
-          <p class="mini-note">
-            地図の近くで位置と向きを調整しながら、代理表示またはGLB表示を切り替えて確認できます。
-          </p>
         </section>
 
         <section class="json-grid">
@@ -763,6 +734,7 @@ py -3 -m http.server 8000</pre>
       glbName: el("glbName"),
       outDir: el("outDir"),
       tilePrefix: el("tilePrefix"),
+      outputFormat: el("outputFormat"),
       previewMode: el("previewMode"),
       proxyShape: el("proxyShape"),
       proxyLength: el("proxyLength"),
@@ -801,9 +773,6 @@ py -3 -m http.server 8000</pre>
 
     function setToolOs(os) {
       currentOs = os;
-      el("os-mac").classList.toggle("active", os === "mac");
-      el("os-win").classList.toggle("active", os === "win");
-      refreshJsonOnly();
     }
 
     function degToRad(deg) {
@@ -944,6 +913,7 @@ py -3 -m http.server 8000</pre>
     }
 
     function buildTilesetObject() {
+      const ext = fields.outputFormat.value === "b3dm" ? "b3dm" : "glb";
       return {
         asset: {
           version: "1.0",
@@ -951,6 +921,7 @@ py -3 -m http.server 8000</pre>
         },
         extras: {
           stage: 2,
+          outputFormat: fields.outputFormat.value,
           sourceGlb: fields.glbName.value.trim() || null,
           splitMode: fields.splitMode.value,
           maxTrianglesPerLeaf: Number(fields.maxTriangles.value),
@@ -958,11 +929,7 @@ py -3 -m http.server 8000</pre>
           targetSizeMB: Number(fields.targetSize.value),
           tilePrefix: fields.tilePrefix.value.trim(),
           tileCountHint: fields.tileCountHint.value.trim() || null,
-          mapProvider: fields.imageryMode.value,
-          previewMode: fields.previewMode.value,
-          proxyShape: fields.proxyShape.value,
-          proxyDimensions: getProxyDims(),
-          note: "OSM地図位置合わせUI。レイアウト改善版。複数b3dm生成は未接続。"
+          proxyDimensions: getProxyDims()
         },
         geometricError: 500,
         root: {
@@ -981,7 +948,7 @@ py -3 -m http.server 8000</pre>
           },
           geometricError: 100,
           content: {
-            uri: (fields.tilePrefix.value.trim() || "tile") + "_root.b3dm"
+            uri: `${(fields.tilePrefix.value.trim() || "tile")}_root.${ext}`
           }
         }
       };
@@ -993,7 +960,8 @@ py -3 -m http.server 8000</pre>
         output: {
           outDir: fields.outDir.value.trim(),
           tilesetName: fields.tilesetName.value.trim(),
-          tilePrefix: fields.tilePrefix.value.trim()
+          tilePrefix: fields.tilePrefix.value.trim(),
+          outputFormat: fields.outputFormat.value
         },
         preview: {
           mode: fields.previewMode.value,
@@ -1017,12 +985,6 @@ py -3 -m http.server 8000</pre>
           pitch: Number(fields.pitch.value),
           roll: Number(fields.roll.value),
           scale: Number(fields.scale.value)
-        },
-        runtime: {
-          os: currentOs === "win" ? "windows" : "mac-linux",
-          mapProvider: fields.imageryMode.value,
-          terrainMode: fields.mapHeightMode.value,
-          glbPreviewFileSelected: !!fields.glbFile.files[0]
         }
       };
     }
@@ -1165,22 +1127,6 @@ py -3 -m http.server 8000</pre>
       });
     }
 
-    function getPositionCartesian() {
-      return Cesium.Cartesian3.fromDegrees(
-        Number(fields.lon.value),
-        Number(fields.lat.value),
-        Number(fields.height.value)
-      );
-    }
-
-    function getHpr() {
-      return new Cesium.HeadingPitchRoll(
-        Cesium.Math.toRadians(Number(fields.heading.value)),
-        Cesium.Math.toRadians(Number(fields.pitch.value)),
-        Cesium.Math.toRadians(Number(fields.roll.value))
-      );
-    }
-
     function buildFootprintPolygonHierarchy(position, hpr, length, width) {
       const halfL = length / 2;
       const halfW = width / 2;
@@ -1217,14 +1163,6 @@ py -3 -m http.server 8000</pre>
           color: Cesium.Color.YELLOW,
           outlineColor: Cesium.Color.BLACK,
           outlineWidth: 2
-        },
-        label: {
-          text: "origin",
-          font: "14px sans-serif",
-          pixelOffset: new Cesium.Cartesian2(0, -24),
-          fillColor: Cesium.Color.WHITE,
-          style: Cesium.LabelStyle.FILL_AND_OUTLINE,
-          outlineWidth: 3
         }
       });
 
@@ -1263,10 +1201,7 @@ py -3 -m http.server 8000</pre>
       }
 
       el("mapStatus").textContent =
-        `軽量代理表示を更新しました。
-Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}
-Heading: ${fields.heading.value}, Pitch: ${fields.pitch.value}, Roll: ${fields.roll.value}, Scale: ${fields.scale.value}`;
-
+        `軽量代理表示を更新しました。 Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}`;
       updateModeIndicators();
     }
 
@@ -1311,9 +1246,7 @@ Heading: ${fields.heading.value}, Pitch: ${fields.pitch.value}, Roll: ${fields.r
         viewer.scene.primitives.add(glbModel);
 
         el("mapStatus").textContent =
-          `GLB を地図上に表示しました。
-Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}
-Heading: ${fields.heading.value}, Pitch: ${fields.pitch.value}, Roll: ${fields.roll.value}, Scale: ${fields.scale.value}`;
+          `GLB を地図上に表示しました。 Lon: ${Number(fields.lon.value).toFixed(6)}, Lat: ${Number(fields.lat.value).toFixed(6)}, Height: ${fields.height.value}`;
 
         updateModeIndicators();
       } catch (err) {
@@ -1398,33 +1331,8 @@ Heading: ${fields.heading.value}, Pitch: ${fields.pitch.value}, Roll: ${fields.r
       refreshJsonOnly();
     });
 
-    [
-      fields.glbName,
-      fields.outDir,
-      fields.tilePrefix,
-      fields.previewMode,
-      fields.proxyShape,
-      fields.proxyLength,
-      fields.proxyWidth,
-      fields.proxyHeight,
-      fields.glbMinPixelSize,
-      fields.splitMode,
-      fields.refineMode,
-      fields.maxTriangles,
-      fields.maxDepth,
-      fields.targetSize,
-      fields.tileCountHint,
-      fields.lon,
-      fields.lat,
-      fields.height,
-      fields.heading,
-      fields.pitch,
-      fields.roll,
-      fields.scale,
-      fields.tilesetName,
-      fields.imageryMode,
-      fields.mapHeightMode
-    ].forEach((input) => {
+    Object.values(fields).forEach((input) => {
+      if (!input || input.id === "glbFile") return;
       input.addEventListener("input", () => {
         refreshJsonOnly();
         if (viewer) refreshProxyOnly();
