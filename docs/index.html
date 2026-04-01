@@ -72,8 +72,9 @@ content-format=b3dm の場合:
         <div class="row"><div><label for="contentFormat">content.uri の形式</label><select id="contentFormat"><option value="b3dm" selected>b3dm を参照</option><option value="glb">glb を参照</option></select></div></div>
         <div class="row-3"><div><label for="lon">経度</label><input id="lon" type="number" step="any" value="139.767125" /></div><div><label for="lat">緯度</label><input id="lat" type="number" step="any" value="35.681236" /></div><div><label for="height">高さ</label><input id="height" type="number" step="any" value="50" /></div></div>
         <div class="row-3"><div><label for="heading">Heading</label><input id="heading" type="number" step="any" value="0" /></div><div><label for="pitch">Pitch</label><input id="pitch" type="number" step="any" value="0" /></div><div><label for="roll">Roll</label><input id="roll" type="number" step="any" value="0" /></div></div>
+        
         <div class="buttons"><button id="generateBtn" type="button">コマンド生成</button><button id="copyBtn" class="ghost" type="button">コマンドをコピー</button><a id="downloadPyBtn" class="btn-link ghost" href="./glb_tiles_georef.py" download>Pythonをダウンロード</a></div>
-        <p class="note"><span class="ok">glb 参照に切り替える場合は <code>--content-format glb</code></span> を使います。<span class="warn">skip-b3dm は glb モードと組み合わせるのが自然</span>です。</p>
+        <p class="note"><span class="ok">glb 参照に切り替える場合は <code>--content-format glb</code></span> を使います。</p>
       </section>
       <section class="stack">
         <section class="card"><h2>実行コマンド</h2><pre id="commands"></pre><p id="copyStatus" class="note"></p></section>
@@ -88,8 +89,8 @@ content-format=b3dm の場合:
     const el = (id) => document.getElementById(id);
     const fields = {
       scriptName: el('scriptName'), inputGlb: el('inputGlb'), outputDir: el('outputDir'), chunks: el('chunks'),
-      contentFormat: el('contentFormat'), skipB3dm: el('skipB3dm'), lon: el('lon'), lat: el('lat'), height: el('height'),
-      heading: el('heading'), pitch: el('pitch'), roll: el('roll'), workDir: el('workDir')
+      contentFormat: el('contentFormat'), lon: el('lon'), lat: el('lat'), height: el('height'),
+      heading: el('heading'), pitch: el('pitch'), roll: el('roll')
     };
     function refreshDownloadLink() {
       const name = (fields.scriptName.value.trim() || 'glb_tiles_georef.py').split(/[\/]/).pop();
@@ -100,22 +101,42 @@ content-format=b3dm の場合:
       el('tab-guide').classList.toggle('active', tab === 'guide'); el('tab-tool').classList.toggle('active', tab === 'tool');
       el('page-guide').style.display = tab === 'guide' ? '' : 'none'; el('page-tool').style.display = tab === 'tool' ? 'grid' : 'none';
     }
-    function joinPath(dir, name) {
-      if (!dir) return './' + name; const sep = currentOs === 'win' ? '\\' : '/'; const trimmed = /[\\/]$/.test(dir) ? dir.slice(0, -1) : dir; return trimmed + sep + name;
-    }
     function shellQuote(value) {
       if (currentOs === 'win') return /\s/.test(value) ? '"' + value + '"' : value;
       return /[^A-Za-z0-9_./:-]/.test(value) ? "'" + value.replace(/'/g, "'\\''") + "'" : value;
     }
     function buildCommand() {
-      const scriptPath = fields.workDir.value.trim() ? joinPath(fields.workDir.value.trim(), fields.scriptName.value.trim()) : './' + fields.scriptName.value.trim();
-      const inputPath = fields.workDir.value.trim() ? joinPath(fields.workDir.value.trim(), fields.inputGlb.value.trim()) : './' + fields.inputGlb.value.trim();
-      const outputPath = fields.workDir.value.trim() ? joinPath(fields.workDir.value.trim(), fields.outputDir.value.trim()) : './' + fields.outputDir.value.trim();
-      const extraSkip = fields.skipB3dm.value === 'true' ? (fields.contentFormat.value === 'glb' ? ' \\\n  --skip-b3dm' : '') : '';
+      const scriptPath = './' + fields.scriptName.value.trim();
+      const inputPath = './' + fields.inputGlb.value.trim();
+      const outputPath = './' + fields.outputDir.value.trim();
       if (currentOs === 'win') {
-        return 'python ' + shellQuote(scriptPath) + ' ^\n  --input ' + shellQuote(inputPath) + ' ^\n  --output ' + shellQuote(outputPath) + ' ^\n  --chunks ' + fields.chunks.value.trim() + ' ^\n  --content-format ' + fields.contentFormat.value + ' ^\n  --lon ' + fields.lon.value.trim() + ' ^\n  --lat ' + fields.lat.value.trim() + ' ^\n  --height ' + fields.height.value.trim() + ' ^\n  --heading ' + fields.heading.value.trim() + ' ^\n  --pitch ' + fields.pitch.value.trim() + ' ^\n  --roll ' + fields.roll.value.trim() + (extraSkip ? ' ^\n  --skip-b3dm' : '');
+        return [
+          'python ' + shellQuote(scriptPath) + ' ^',
+          '  --input ' + shellQuote(inputPath) + ' ^',
+          '  --output ' + shellQuote(outputPath) + ' ^',
+          '  --chunks ' + fields.chunks.value.trim() + ' ^',
+          '  --content-format ' + fields.contentFormat.value + ' ^',
+          '  --lon ' + fields.lon.value.trim() + ' ^',
+          '  --lat ' + fields.lat.value.trim() + ' ^',
+          '  --height ' + fields.height.value.trim() + ' ^',
+          '  --heading ' + fields.heading.value.trim() + ' ^',
+          '  --pitch ' + fields.pitch.value.trim() + ' ^',
+          '  --roll ' + fields.roll.value.trim()
+        ].join('\n');
       }
-      return 'python3 ' + shellQuote(scriptPath) + ' \\\n  --input ' + shellQuote(inputPath) + ' \\\n  --output ' + shellQuote(outputPath) + ' \\\n  --chunks ' + fields.chunks.value.trim() + ' \\\n  --content-format ' + fields.contentFormat.value + ' \\\n  --lon ' + fields.lon.value.trim() + ' \\\n  --lat ' + fields.lat.value.trim() + ' \\\n  --height ' + fields.height.value.trim() + ' \\\n  --heading ' + fields.heading.value.trim() + ' \\\n  --pitch ' + fields.pitch.value.trim() + ' \\\n  --roll ' + fields.roll.value.trim() + extraSkip;
+      return [
+        'python3 ' + shellQuote(scriptPath) + ' \\',
+        '  --input ' + shellQuote(inputPath) + ' \\',
+        '  --output ' + shellQuote(outputPath) + ' \\',
+        '  --chunks ' + fields.chunks.value.trim() + ' \\',
+        '  --content-format ' + fields.contentFormat.value + ' \\',
+        '  --lon ' + fields.lon.value.trim() + ' \\',
+        '  --lat ' + fields.lat.value.trim() + ' \\',
+        '  --height ' + fields.height.value.trim() + ' \\',
+        '  --heading ' + fields.heading.value.trim() + ' \\',
+        '  --pitch ' + fields.pitch.value.trim() + ' \\',
+        '  --roll ' + fields.roll.value.trim()
+      ].join('\n');
     }
     function buildOutputPreview() {
       const out = fields.outputDir.value.trim() || 'out_lite';
