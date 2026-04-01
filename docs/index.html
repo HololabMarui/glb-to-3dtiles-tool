@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>GLB to 3D Tiles Helper</title>
+  <title>GLB Split to 3D Tiles Helper (Georef)</title>
   <style>
     :root {
       --bg: #0b1020;
@@ -14,6 +14,7 @@
       --accent: #6ea8fe;
       --border: #2b3563;
       --ok: #7bd88f;
+      --warn: #ffd166;
     }
     * { box-sizing: border-box; }
     body {
@@ -23,18 +24,27 @@
       color: var(--text);
       line-height: 1.5;
     }
-    .wrap {
-      max-width: 1100px;
-      margin: 0 auto;
-      padding: 32px 20px 48px;
+    .wrap { max-width: 1180px; margin: 0 auto; padding: 32px 20px 48px; }
+    .hero {
+      position: relative;
+      margin: 0 0 24px;
+      min-height: 220px;
+      border-radius: 24px;
+      overflow: hidden;
+      background-image:
+        linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
+        url("./images/header-bg.png");
+      background-size: cover;
+      background-position: center;
+      background-repeat: no-repeat;
+      border: 1px solid var(--border);
+      box-shadow: 0 10px 25px rgba(0,0,0,0.22);
     }
-    h1 { margin: 0 0 8px; font-size: 32px; }
-    .lead { margin: 0 0 24px; color: var(--muted); }
-    .grid {
-      display: grid;
-      grid-template-columns: 1.2fr 1fr;
-      gap: 20px;
-    }
+    .hero-overlay { display:flex; flex-direction:column; justify-content:end; min-height:220px; padding:28px 24px; }
+    .hero h1 { margin:0 0 8px; font-size:42px; color:#fff; text-shadow:0 2px 10px rgba(0,0,0,0.45); }
+    .hero .lead { margin:0; max-width:820px; color:#eef4ff; text-shadow:0 2px 8px rgba(0,0,0,0.35); }
+    .grid { display:grid; grid-template-columns: 1.25fr 1fr; gap:20px; }
+    .stack { display:grid; gap:16px; }
     .card {
       background: rgba(18, 25, 51, 0.9);
       border: 1px solid var(--border);
@@ -42,208 +52,90 @@
       padding: 20px;
       box-shadow: 0 10px 25px rgba(0,0,0,0.18);
     }
-    .card h2 {
-      margin-top: 0;
-      font-size: 20px;
-    }
-    .row {
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    .row-3 {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 12px;
-      margin-bottom: 12px;
-    }
-    label {
-      display: block;
-      font-size: 13px;
-      color: var(--muted);
-      margin-bottom: 6px;
-    }
+    .card h2 { margin: 0 0 14px; font-size: 20px; }
+    .row, .row-3 { display:grid; gap:12px; margin-bottom:12px; }
+    .row { grid-template-columns: 1fr 1fr; }
+    .row-3 { grid-template-columns: 1fr 1fr 1fr; }
+    label { display:block; font-size:13px; color:var(--muted); margin-bottom:6px; }
     input, select, textarea {
-      width: 100%;
-      border: 1px solid var(--border);
-      border-radius: 12px;
-      padding: 12px 14px;
-      background: var(--panel-2);
-      color: var(--text);
-      font-size: 14px;
+      width:100%; border:1px solid var(--border); border-radius:12px; padding:12px 14px;
+      background:var(--panel-2); color:var(--text); font-size:14px;
     }
-    textarea {
-      min-height: 120px;
-      resize: vertical;
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    .buttons {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 10px;
-      margin-top: 8px;
-    }
+    textarea { min-height:120px; resize:vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    .buttons { display:flex; flex-wrap:wrap; gap:10px; margin-top:8px; }
     button, .btn-link {
-      border: 1px solid var(--border);
-      background: var(--accent);
-      color: #08101f;
-      font-weight: 700;
-      padding: 12px 16px;
-      border-radius: 12px;
-      cursor: pointer;
-      text-decoration: none;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+      border:1px solid var(--border); background:var(--accent); color:#08101f; font-weight:700;
+      padding:12px 16px; border-radius:12px; cursor:pointer; text-decoration:none; display:inline-flex; align-items:center; justify-content:center;
     }
-    .ghost {
-      background: transparent;
-      color: var(--text);
-    }
-    .note {
-      font-size: 13px;
-      color: var(--muted);
-      margin-top: 10px;
-    }
-    .ok {
-      color: var(--ok);
-      font-weight: 700;
-    }
+    button.ghost, .btn-link.ghost { background:transparent; color:var(--text); }
+    .note { font-size:13px; color:var(--muted); margin-top:10px; }
+    .ok { color: var(--ok); font-weight: 700; }
+    .warn { color: var(--warn); font-weight: 700; }
     pre {
-      margin: 0;
-      white-space: pre-wrap;
-      word-break: break-word;
+      margin:0; white-space:pre-wrap; word-break:break-word; overflow:auto;
       font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-      font-size: 13px;
-      background: #0a1022;
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      padding: 14px;
-      overflow: auto;
+      font-size:13px; background:#0a1022; border:1px solid var(--border); border-radius:14px; padding:14px;
     }
-    .stack { display: grid; gap: 16px; }
     .pillbar {
-      display: inline-flex;
-      border: 1px solid var(--border);
-      border-radius: 999px;
-      overflow: hidden;
-      margin-bottom: 12px;
+      display:inline-flex; border:1px solid var(--border); border-radius:999px; overflow:hidden; margin-bottom:16px;
     }
-    .pillbar button {
-      border: 0;
-      border-right: 1px solid var(--border);
-      border-radius: 0;
-      background: transparent;
-      color: var(--text);
-      padding: 10px 16px;
-    }
-    .pillbar button:last-child { border-right: 0; }
-    .pillbar button.active {
-      background: var(--accent);
-      color: #08101f;
-    }
-    code {
-      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-    }
-    @media (max-width: 900px) {
-      .grid, .row, .row-3 { grid-template-columns: 1fr; }
-    }
-    .hero {
-  position: relative;
-  margin: 0 0 24px;
-  min-height: 240px;
-  border-radius: 24px;
-  overflow: hidden;
-  background-image:
-    linear-gradient(rgba(11, 16, 32, 0.45), rgba(11, 16, 32, 0.72)),
-    url("./images/header-bg.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-  border: 1px solid var(--border);
-  box-shadow: 0 10px 25px rgba(0,0,0,0.22);
-}
-
-.hero-overlay {
-  display: flex;
-  flex-direction: column;
-  justify-content: end;
-  min-height: 240px;
-  padding: 28px 24px;
-}
-
-.hero h1 {
-  margin: 0 0 8px;
-  font-size: 44px;
-  color: #ffffff;
-  text-shadow: 0 2px 10px rgba(0,0,0,0.45);
-}
-
-.hero .lead {
-  margin: 0;
-  max-width: 790px;
-  color: #eef4ff;
-  text-shadow: 0 2px 8px rgba(0,0,0,0.35);
-}
+    .pillbar button { border:0; border-right:1px solid var(--border); border-radius:0; background:transparent; color:var(--text); }
+    .pillbar button:last-child { border-right:0; }
+    .pillbar button.active { background:var(--accent); color:#08101f; }
+    ul { padding-left: 18px; margin: 8px 0 0; }
+    code { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+    @media (max-width: 980px) { .grid, .row, .row-3 { grid-template-columns: 1fr; } }
   </style>
 </head>
 <body>
   <div class="wrap">
-<div class="hero">
-  <div class="hero-overlay">
-    <h1>GLB to 3D Tiles Helper</h1>
-    <p class="lead">環境構築ガイドと、GLB→B3DM / tileset.json 生成支援ツールを分けて使える GitHub Pages 向けページです。</p>
-  </div>
-</div>
+    <div class="hero">
+      <div class="hero-overlay">
+        <h1>GLB Split to 3D Tiles Helper</h1>
+        <p class="lead">GLB を 2〜3 チャンク程度の複数 B3DM に分割し、<code>root.transform</code> 付きの <code>tileset.json</code> を生成する位置反映版 Python スクリプト向けヘルパーです。</p>
+      </div>
+    </div>
 
-    <div class="pillbar" role="tablist" aria-label="ページ切替" style="margin-bottom:20px;">
-      <button id="tab-guide" type="button">環境構築ガイド</button>
-      <button id="tab-tool" class="active" type="button">変換ツール</button>
+    <div class="pillbar" role="tablist" aria-label="ページ切替">
+      <button id="tab-guide" type="button">使い方</button>
+      <button id="tab-tool" class="active" type="button">コマンド生成</button>
     </div>
 
     <section id="page-guide" class="stack">
       <section class="card">
         <h2>概要</h2>
-        <p class="note">このツールは、<code>3d-tiles-tools</code> を使って <code>GLB → B3DM</code> と <code>tileset.json</code> 生成を支援するためのものです。GitHub Pages 上では npm コマンドの実行自体は行わず、<span class="ok">手順確認・入力補助・コマンド生成</span> を担当します。</p>
+        <p class="note">このページ自体は GitHub Pages 上で変換処理をしません。<span class="ok">ローカルの <code>glb_tiles_georef.py</code> を実行するための入力補助・コマンド生成</span> を行います。ページ内の <span class="ok">Pythonをダウンロード</span> ボタンから同じフォルダのスクリプトも配布できます。</p>
       </section>
-
       <section class="card">
-        <h2>前提条件</h2>
-        <div class="note">
-          <div>・Node.js / npm がインストール済みであること</div>
-          <div>・作業フォルダに変換対象の <code>.glb</code> があること</div>
-          <div>・作業フォルダで <code>3d-tiles-tools</code> が使えること</div>
-        </div>
+        <h2>前提</h2>
+        <ul class="note">
+          <li>Python 仮想環境があること</li>
+          <li><code>trimesh</code> が入っていること</li>
+          <li><code>npx 3d-tiles-tools --help</code> が通ること</li>
+          <li><code>glb_tiles_georef.py</code> をこのHTMLと同じ場所に置くと、ページ内のダウンロードボタンでも共有できます</li>
+        </ul>
       </section>
-
       <section class="card">
-        <h2>セットアップ手順</h2>
-        <pre>npm install 3d-tiles-tools
-npx 3d-tiles-tools --help</pre>
-        <p class="note">上記コマンドが通れば、変換ツールページで生成したコマンドをそのまま実行できます。</p>
+        <h2>動作イメージ</h2>
+        <pre>GLB 1個
+↓
+メッシュ単位で 2〜3 チャンクに分割
+↓
+chunk_000.glb / chunk_001.glb / ...
+↓
+glbToB3dm → updateAlignment
+↓
+chunk_000_aligned.b3dm / ...
+↓
+root.transform 付き tileset.json</pre>
       </section>
-
       <section class="card">
-        <h2>基本手順</h2>
-        <div class="note">
-          <div>1. Node.js / npm をインストール</div>
-          <div>2. 作業フォルダで <code>npm install 3d-tiles-tools</code> を実行</div>
-          <div>3. 変換ツールページで入力値を設定してコマンドを生成</div>
-          <div>4. <code>glbToB3dm</code> で B3DM 作成</div>
-          <div>5. <code>updateAlignment</code> で alignment 補正</div>
-          <div>6. <code>createTilesetJson</code> で位置つき tileset を作成</div>
-          <div>7. torinome では <code>tileset.json</code> を読み込む</div>
-        </div>
-      </section>
-
-      <section class="card">
-        <h2>注意事項</h2>
-        <div class="note">
-          <div>・<span class="ok">緯度・経度・高さ・向き（Heading / Pitch / Roll）</span> は、このページが自動計算するものではありません。</div>
-          <div>・これらの値は、現地確認、既存GIS、ビューア上の目視調整、外部情報などをもとに <span class="ok">手動で設定・調整</span> してください。</div>
-          <div>・特に高さと向きは、モデル原点や地形条件によってズレやすいため、torinome 上で確認しながら再調整する前提です。</div>
-        </div>
+        <h2>注意</h2>
+        <ul class="note">
+          <li>この lite 版は <span class="warn">メッシュ単位</span> の簡易分割です。単一メッシュの GLB は分かれにくいです。</li>
+          <li>緯度経度は <code>root.transform</code> に書き込みますが、高さや向きはモデル原点の影響を受けます。</li>
+          <li>まずは <code>heading / pitch / roll = 0</code> で位置だけ確認するのが安全です。</li>
+        </ul>
       </section>
     </section>
 
@@ -258,23 +150,23 @@ npx 3d-tiles-tools --help</pre>
 
         <div class="row">
           <div>
-            <label for="glbName">入力GLBファイル名</label>
-            <input id="glbName" value="your_model.glb" />
+            <label for="scriptName">Python スクリプト名</label>
+            <input id="scriptName" value="glb_tiles_georef.py" />
           </div>
           <div>
-            <label for="outDir">出力フォルダ名</label>
-            <input id="outDir" value="out" />
+            <label for="inputGlb">入力GLBファイル名</label>
+            <input id="inputGlb" value="test.glb" />
           </div>
         </div>
 
         <div class="row">
           <div>
-            <label for="b3dmName">出力B3DMファイル名</label>
-            <input id="b3dmName" value="your_model_aligned.b3dm" />
+            <label for="outputDir">出力フォルダ名</label>
+            <input id="outputDir" value="out_lite" />
           </div>
           <div>
-            <label for="tilesetName">出力Tilesetファイル名</label>
-            <input id="tilesetName" value="tileset.json" />
+            <label for="chunks">チャンク数</label>
+            <input id="chunks" type="number" min="1" step="1" value="3" />
           </div>
         </div>
 
@@ -310,21 +202,24 @@ npx 3d-tiles-tools --help</pre>
 
         <div class="row">
           <div>
-            <label for="workDir">作業フォルダの絶対パス（任意）</label>
-            <input id="workDir" placeholder="例: /Users/name/Desktop/GLB_to_3DTiles または C:\work\GLB_to_3DTiles" />
+            <label for="workDir">作業フォルダ絶対パス（任意）</label>
+            <input id="workDir" placeholder="例: /Users/name/Desktop/GLB_to_3DTiles または C:\\work\\GLB_to_3DTiles" />
           </div>
           <div>
-            <label for="repoHint">メモ</label>
-            <input id="repoHint" value="npm install 3d-tiles-tools 済み前提" />
+            <label for="skipB3dm">実行モード</label>
+            <select id="skipB3dm">
+              <option value="false" selected>B3DM / tileset.json まで作成</option>
+              <option value="true">GLB分割だけ試す (--skip-b3dm)</option>
+            </select>
           </div>
         </div>
 
         <div class="buttons">
           <button id="generateBtn" type="button">コマンド生成</button>
-          <button id="downloadJsonBtn" class="ghost" type="button">tileset.json をダウンロード</button>
           <button id="copyBtn" class="ghost" type="button">コマンドをコピー</button>
+          <a id="downloadPyBtn" class="btn-link ghost" href="./glb_tiles_georef.py" download>Pythonをダウンロード</a>
         </div>
-        <p class="note">このページは <span class="ok">手動で決めた位置・向き・高さ</span> をもとにコマンドと <code>tileset.json</code> を生成します。GitHub Pages 上では npm 実行はできません。</p>
+        <p class="note">出力される <code>tileset.json</code> は <span class="ok">root.transform</span> を持つ前提です。表示位置がずれる場合は、モデル原点や高さの調整が必要です。</p>
       </section>
 
       <section class="stack">
@@ -335,183 +230,201 @@ npx 3d-tiles-tools --help</pre>
         </section>
 
         <section class="card">
-          <h2>生成される tileset.json</h2>
-          <pre id="tilesetPreview"></pre>
+          <h2>想定される出力構成</h2>
+          <pre id="outputPreview"></pre>
         </section>
 
         <section class="card">
-          <h2>ツール利用時の注意</h2>
-          <div class="note">
-            <div>・位置、向き、高さは自動計算ではありません</div>
-            <div>・モデルの中心や原点によって見え方が変わる場合があります</div>
-            <div>・torinome 上で確認しながら数値を再調整してください</div>
-          </div>
+          <h2>想定 tileset.json の要点</h2>
+          <pre id="tilesetPreview"></pre>
         </section>
       </section>
     </section>
   </div>
 
   <script>
-    let currentOs = "mac";
-
+    let currentOs = 'mac';
     const el = (id) => document.getElementById(id);
     const fields = {
-      glbName: el("glbName"),
-      outDir: el("outDir"),
-      b3dmName: el("b3dmName"),
-      tilesetName: el("tilesetName"),
-      lon: el("lon"),
-      lat: el("lat"),
-      height: el("height"),
-      heading: el("heading"),
-      pitch: el("pitch"),
-      roll: el("roll"),
-      workDir: el("workDir")
+      scriptName: el('scriptName'),
+      inputGlb: el('inputGlb'),
+      outputDir: el('outputDir'),
+      chunks: el('chunks'),
+      lon: el('lon'),
+      lat: el('lat'),
+      height: el('height'),
+      heading: el('heading'),
+      pitch: el('pitch'),
+      roll: el('roll'),
+      workDir: el('workDir'),
+      skipB3dm: el('skipB3dm')
     };
 
-    function setMainTab(tab) {
-      const guideBtn = el("tab-guide");
-      const toolBtn = el("tab-tool");
-      const guidePage = el("page-guide");
-      const toolPage = el("page-tool");
+    function refreshDownloadLink() {
+      const name = (fields.scriptName.value.trim() || 'glb_tiles_georef.py').split(/[\/]/).pop();
+      const link = el('downloadPyBtn');
+      link.setAttribute('href', './' + name);
+      link.setAttribute('download', name);
+    }
 
-      if (tab === "guide") {
-        guideBtn.classList.add("active");
-        toolBtn.classList.remove("active");
-        guidePage.style.display = "";
-        toolPage.style.display = "none";
-      } else {
-        toolBtn.classList.add("active");
-        guideBtn.classList.remove("active");
-        guidePage.style.display = "none";
-        toolPage.style.display = "grid";
-      }
+    function setMainTab(tab) {
+      el('tab-guide').classList.toggle('active', tab === 'guide');
+      el('tab-tool').classList.toggle('active', tab === 'tool');
+      el('page-guide').style.display = tab === 'guide' ? '' : 'none';
+      el('page-tool').style.display = tab === 'tool' ? 'grid' : 'none';
     }
 
     function joinPath(dir, name) {
-      if (!dir) return "./" + name;
-      const sep = currentOs === "win" ? "\\" : "/";
-      const trimmed = dir.endsWith("/") || dir.endsWith("\\") ? dir.slice(0, -1) : dir;
+      if (!dir) return './' + name;
+      const sep = currentOs === 'win' ? '\\' : '/';
+      const trimmed = /[\\/]$/.test(dir) ? dir.slice(0, -1) : dir;
       return trimmed + sep + name;
     }
 
-    function jsonStringifyPretty(obj) {
-      return JSON.stringify(obj, null, 2);
+    function shellQuote(value) {
+      if (currentOs === 'win') {
+        return /\s/.test(value) ? '"' + value + '"' : value;
+      }
+      return /[^A-Za-z0-9_./:-]/.test(value) ? "'" + value.replace(/'/g, "'\\''") + "'" : value;
     }
 
-    function buildTilesetObject() {
-      return {
-        asset: { version: "1.1" },
-        geometricError: 512,
-        root: {
-          boundingVolume: {
-            region: [0, 0, 0, 0, 0, 1000]
-          },
-          geometricError: 0,
-          refine: "ADD",
-          content: {
-            uri: fields.b3dmName.value.trim()
-          },
-          transformNote: {
-            cartographicPositionDegrees: [
-              Number(fields.lon.value),
-              Number(fields.lat.value),
-              Number(fields.height.value)
-            ],
-            rotationDegrees: [
-              Number(fields.heading.value),
-              Number(fields.pitch.value),
-              Number(fields.roll.value)
-            ]
-          }
-        }
-      };
-    }
-
-    function buildCommands() {
-      const glb = fields.glbName.value.trim();
-      const outDir = fields.outDir.value.trim();
-      const rawB3dm = fields.b3dmName.value.trim().replace(/_aligned\.b3dm$/i, ".b3dm");
-      const alignedB3dm = fields.b3dmName.value.trim();
-      const tileset = fields.tilesetName.value.trim();
-      const lon = fields.lon.value.trim();
-      const lat = fields.lat.value.trim();
-      const height = fields.height.value.trim();
-      const heading = fields.heading.value.trim();
-      const pitch = fields.pitch.value.trim();
-      const roll = fields.roll.value.trim();
+    function buildCommand() {
+      const scriptName = fields.scriptName.value.trim();
+      const inputGlb = fields.inputGlb.value.trim();
+      const outputDir = fields.outputDir.value.trim();
+      const chunks = fields.chunks.value.trim();
       const wd = fields.workDir.value.trim();
-
-      const outDirPath = joinPath(wd, outDir);
-      const glbPath = wd ? joinPath(wd, glb) : "./" + glb;
-      const rawB3dmPath = wd ? joinPath(outDirPath, rawB3dm) : "./" + outDir + "/" + rawB3dm;
-      const alignedB3dmPath = wd ? joinPath(outDirPath, alignedB3dm) : "./" + outDir + "/" + alignedB3dm;
-      const tilesetPath = wd ? joinPath(outDirPath, tileset) : "./" + outDir + "/" + tileset;
-
-      if (currentOs === "win") {
-        return [
-          `mkdir ${outDir}`,
-          `npx 3d-tiles-tools glbToB3dm ^\n  -i ${glbPath} ^\n  -o ${rawB3dmPath}`,
-          `npx 3d-tiles-tools updateAlignment ^\n  -i ${rawB3dmPath} ^\n  -o ${alignedB3dmPath}`,
-          `npx 3d-tiles-tools createTilesetJson ^\n  -i ${alignedB3dmPath} ^\n  -o ${tilesetPath} ^\n  --cartographicPositionDegrees ${lon} ${lat} ${height} ^\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-        ].join("\n\n");
+      const scriptPath = wd ? joinPath(wd, scriptName) : './' + scriptName;
+      const inputPath = wd ? joinPath(wd, inputGlb) : './' + inputGlb;
+      const outputPath = wd ? joinPath(wd, outputDir) : './' + outputDir;
+      const args = [
+        currentOs === 'win' ? 'python' : 'python3',
+        shellQuote(scriptPath),
+        '\\',
+        '  --input ' + shellQuote(inputPath),
+        '\\',
+        '  --output ' + shellQuote(outputPath),
+        '\\',
+        '  --chunks ' + chunks,
+        '\\',
+        '  --lon ' + fields.lon.value.trim(),
+        '\\',
+        '  --lat ' + fields.lat.value.trim(),
+        '\\',
+        '  --height ' + fields.height.value.trim(),
+        '\\',
+        '  --heading ' + fields.heading.value.trim(),
+        '\\',
+        '  --pitch ' + fields.pitch.value.trim(),
+        '\\',
+        '  --roll ' + fields.roll.value.trim()
+      ];
+      if (fields.skipB3dm.value === 'true') {
+        args.push('\\', '  --skip-b3dm');
       }
 
+      if (currentOs === 'win') {
+        return [
+          'mkdir ' + shellQuote(outputPath),
+          'python ' + shellQuote(scriptPath) + ' ^\n  --input ' + shellQuote(inputPath) + ' ^\n  --output ' + shellQuote(outputPath) + ' ^\n  --chunks ' + chunks + ' ^\n  --lon ' + fields.lon.value.trim() + ' ^\n  --lat ' + fields.lat.value.trim() + ' ^\n  --height ' + fields.height.value.trim() + ' ^\n  --heading ' + fields.heading.value.trim() + ' ^\n  --pitch ' + fields.pitch.value.trim() + ' ^\n  --roll ' + fields.roll.value.trim() + (fields.skipB3dm.value === 'true' ? ' ^\n  --skip-b3dm' : '')
+        ].join('\n\n');
+      }
+
+      return 'python3 ' + shellQuote(scriptPath) + ' \\\n  --input ' + shellQuote(inputPath) + ' \\\n  --output ' + shellQuote(outputPath) + ' \\\n  --chunks ' + chunks + ' \\\n  --lon ' + fields.lon.value.trim() + ' \\\n  --lat ' + fields.lat.value.trim() + ' \\\n  --height ' + fields.height.value.trim() + ' \\\n  --heading ' + fields.heading.value.trim() + ' \\\n  --pitch ' + fields.pitch.value.trim() + ' \\\n  --roll ' + fields.roll.value.trim() + (fields.skipB3dm.value === 'true' ? ' \\\n  --skip-b3dm' : '');
+    }
+
+    function buildOutputPreview() {
+      const out = fields.outputDir.value.trim() || 'out_lite';
+      if (fields.skipB3dm.value === 'true') {
+        return [
+          out + '/',
+          '  tiles_src/',
+          '    chunk_000.glb',
+          '    chunk_001.glb',
+          '    chunk_002.glb',
+          '  build_report.json'
+        ].join('\n');
+      }
       return [
-        `mkdir -p ${outDir}`,
-        `npx 3d-tiles-tools glbToB3dm \\\n  -i ${glbPath} \\\n  -o ${rawB3dmPath}`,
-        `npx 3d-tiles-tools updateAlignment \\\n  -i ${rawB3dmPath} \\\n  -o ${alignedB3dmPath}`,
-        `npx 3d-tiles-tools createTilesetJson \\\n  -i ${alignedB3dmPath} \\\n  -o ${tilesetPath} \\\n  --cartographicPositionDegrees ${lon} ${lat} ${height} \\\n  --rotationDegrees ${heading} ${pitch} ${roll}`
-      ].join("\n\n");
+        out + '/',
+        '  tiles_src/',
+        '    chunk_000.glb',
+        '    chunk_001.glb',
+        '    chunk_002.glb',
+        '  tiles/',
+        '    chunk_000.b3dm',
+        '    chunk_000_aligned.b3dm',
+        '    chunk_001.b3dm',
+        '    chunk_001_aligned.b3dm',
+        '    chunk_002.b3dm',
+        '    chunk_002_aligned.b3dm',
+        '  tileset.json',
+        '  build_report.json'
+      ].join('\n');
     }
 
-    function refresh() {
-      el("commands").textContent = buildCommands();
-      el("tilesetPreview").textContent = jsonStringifyPretty(buildTilesetObject());
-    }
-
-    function downloadJson() {
-      const blob = new Blob([jsonStringifyPretty(buildTilesetObject())], { type: "application/json" });
-      const a = document.createElement("a");
-      a.href = URL.createObjectURL(blob);
-      a.download = fields.tilesetName.value.trim() || "tileset.json";
-      a.click();
-      URL.revokeObjectURL(a.href);
+    function buildTilesetPreview() {
+      const transform = [
+        'root.transform: [ ... 16 values ... ]',
+        '  // lon/lat/height + heading/pitch/roll から計算',
+        '',
+        'root.children:',
+        '  - content.uri: tiles/chunk_000_aligned.b3dm',
+        '  - content.uri: tiles/chunk_001_aligned.b3dm',
+        '  - content.uri: tiles/chunk_002_aligned.b3dm'
+      ];
+      return JSON.stringify({
+        asset: { version: '1.1' },
+        geometricError: 200,
+        root: {
+          boundingVolume: { box: ['<computed>'] },
+          geometricError: 100,
+          refine: 'ADD',
+          transform: ['<16 computed values>'],
+          children: [
+            { content: { uri: 'tiles/chunk_000_aligned.b3dm' } },
+            { content: { uri: 'tiles/chunk_001_aligned.b3dm' } },
+            { content: { uri: 'tiles/chunk_002_aligned.b3dm' } }
+          ]
+        }
+      }, null, 2) + '\n\n' + transform.join('\n');
     }
 
     async function copyCommands() {
       try {
-        await navigator.clipboard.writeText(el("commands").textContent);
-        el("copyStatus").textContent = "コマンドをコピーしました。";
-      } catch {
-        el("copyStatus").textContent = "コピーできませんでした。手動で選択してください。";
+        await navigator.clipboard.writeText(el('commands').textContent);
+        el('copyStatus').textContent = 'コマンドをコピーしました。';
+      } catch (_) {
+        el('copyStatus').textContent = 'コピーできませんでした。手動で選択してください。';
       }
     }
 
-    el("tab-guide").addEventListener("click", () => setMainTab("guide"));
-    el("tab-tool").addEventListener("click", () => setMainTab("tool"));
+    function refresh() {
+      refreshDownloadLink();
+      el('commands').textContent = buildCommand();
+      el('outputPreview').textContent = buildOutputPreview();
+      el('tilesetPreview').textContent = buildTilesetPreview();
+    }
 
-    el("os-mac").addEventListener("click", () => {
-      currentOs = "mac";
-      el("os-mac").classList.add("active");
-      el("os-win").classList.remove("active");
+    el('tab-guide').addEventListener('click', () => setMainTab('guide'));
+    el('tab-tool').addEventListener('click', () => setMainTab('tool'));
+    el('os-mac').addEventListener('click', () => {
+      currentOs = 'mac';
+      el('os-mac').classList.add('active');
+      el('os-win').classList.remove('active');
       refresh();
     });
-
-    el("os-win").addEventListener("click", () => {
-      currentOs = "win";
-      el("os-win").classList.add("active");
-      el("os-mac").classList.remove("active");
+    el('os-win').addEventListener('click', () => {
+      currentOs = 'win';
+      el('os-win').classList.add('active');
+      el('os-mac').classList.remove('active');
       refresh();
     });
+    el('generateBtn').addEventListener('click', refresh);
+    el('copyBtn').addEventListener('click', copyCommands);
+    Object.values(fields).forEach((input) => input.addEventListener('input', refresh));
 
-    el("generateBtn").addEventListener("click", refresh);
-    el("downloadJsonBtn").addEventListener("click", downloadJson);
-    el("copyBtn").addEventListener("click", copyCommands);
-
-    Object.values(fields).forEach((input) => input.addEventListener("input", refresh));
-
-    setMainTab("tool");
+    setMainTab('tool');
     refresh();
   </script>
 </body>
