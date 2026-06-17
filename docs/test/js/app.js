@@ -1,38 +1,35 @@
 /**
  * app.js
  * GLB → 3D Tiles 変換ツール メインロジック
- * - GLB 読み込み (Three.js GLTFLoader)
- * - メッシュ単位チャンク分割 & GLB 書き出し (Three.js GLTFExporter)
- * - MapLibre GL JS による位置調整地図
- * - ZIP 出力 (JSZip)
  */
 import { buildTileset, buildReport } from './georef.js';
 
-// ── Three.js import (importmap で 'three' → CDN に解決される) ─────────
 import * as THREE from 'three';
-import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
-import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
+import { GLTFLoader }         from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter }       from 'three/addons/exporters/GLTFExporter.js';
+import { mergeGeometries }    from 'three/addons/utils/BufferGeometryUtils.js';
 
-// ── DOM helpers ────────────────────────────────────────────────────────
+// ── DOM helpers ───────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);
 
-// ── State ──────────────────────────────────────────────────────────────
-let loadedGLB = null;     // ArrayBuffer of original GLB
+// ── State ─────────────────────────────────────────────────────────────
+let loadedGLB      = null;
 let loadedFileName = '';
-let marker = null;        // MapLibre marker
-let map = null;
+let marker         = null;
+let map            = null;
 
-// ── Tab switching ──────────────────────────────────────────────────────
+// ── Tab switching ─────────────────────────────────────────────────────
 function setTab(name) {
   ['guide', 'tool'].forEach(t => {
     $('tab-' + t).classList.toggle('active', t === name);
-    $('page-' + t).style.display = t === name ? '' : 'none';
+    // CSS の display:none を上書きするため '' ではなく 'block' を明示する
+    $('page-' + t).style.display = t === name ? 'block' : 'none';
   });
 }
 $('tab-guide').addEventListener('click', () => setTab('guide'));
 $('tab-tool').addEventListener('click',  () => setTab('tool'));
 
-// ── GLB file input ─────────────────────────────────────────────────────
+// ── GLB file input ────────────────────────────────────────────────────
 $('glbInput').addEventListener('change', async (e) => {
   const file = e.target.files[0];
   if (!file) return;
@@ -43,41 +40,36 @@ $('glbInput').addEventListener('change', async (e) => {
   updatePreview();
 });
 
-// ── 3D Preview (Three.js) ──────────────────────────────────────────────
+// ── 3D Preview (Three.js) ─────────────────────────────────────────────
 let previewRenderer = null;
-let previewScene = null;
-let previewCamera = null;
-let previewAnimId = null;
+let previewAnimId   = null;
 
 function initPreview() {
   const canvas = $('previewCanvas');
   previewRenderer = new THREE.WebGLRenderer({ canvas, antialias: true, alpha: true });
   previewRenderer.setPixelRatio(devicePixelRatio);
-  previewScene  = new THREE.Scene();
-  previewCamera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
 
-  // ライト
-  previewScene.add(new THREE.AmbientLight(0xffffff, 0.8));
+  const scene  = new THREE.Scene();
+  const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 10000);
+  scene.add(new THREE.AmbientLight(0xffffff, 0.8));
   const dir = new THREE.DirectionalLight(0xffffff, 1.0);
   dir.position.set(5, 10, 7);
-  previewScene.add(dir);
+  scene.add(dir);
 
-  // リサイズ
+  const pivot = new THREE.Object3D();
+  scene.add(pivot);
+  window._previewPivot = pivot;
+
   function resize() {
     const w = canvas.clientWidth, h = canvas.clientHeight;
-    previewCamera.aspect = w / h;
-    previewCamera.updateProjectionMatrix();
+    camera.aspect = w / h;
+    camera.updateProjectionMatrix();
     previewRenderer.setSize(w, h, false);
   }
   new ResizeObserver(resize).observe(canvas);
   resize();
 
-  // マウスドラッグ回転
-  let drag = false, lastX = 0, lastY = 0;
-  let rotX = 0, rotY = 0;
-  const pivot = new THREE.Object3D();
-  previewScene.add(pivot);
-
+  let drag = false, lastX = 0, lastY = 0, rotX = 0, rotY = 0;
   canvas.addEventListener('mousedown', e => { drag = true; lastX = e.clientX; lastY = e.clientY; });
   window.addEventListener('mouseup',   () => { drag = false; });
   canvas.addEventListener('mousemove', e => {
@@ -89,14 +81,14 @@ function initPreview() {
     pivot.rotation.x = THREE.MathUtils.degToRad(rotX);
   });
   canvas.addEventListener('wheel', e => {
-    previewCamera.position.z *= 1 + e.deltaY * 0.001;
+    camera.position.z *= 1 + e.deltaY * 0.001;
   }, { passive: true });
 
-  window._previewPivot = pivot;
+  window._previewCamera = camera;
 
   function animate() {
     previewAnimId = requestAnimationFrame(animate);
-    previewRenderer.render(previewScene, previewCamera);
+    previewRenderer.render(scene, camera);
   }
   animate();
 }
@@ -104,29 +96,24 @@ function initPreview() {
 function updatePreview() {
   if (!loadedGLB) return;
   const pivot = window._previewPivot;
-  // 既存モデル削除
   while (pivot.children.length) pivot.remove(pivot.children[0]);
 
   const loader = new GLTFLoader();
   loader.parse(loadedGLB.slice(0), '', (gltf) => {
-    // バウンディングボックスを計算してカメラ調整
-    const box = new THREE.Box3().setFromObject(gltf.scene);
+    const box    = new THREE.Box3().setFromObject(gltf.scene);
     const center = box.getCenter(new THREE.Vector3());
     const size   = box.getSize(new THREE.Vector3()).length();
-
     gltf.scene.position.sub(center);
     pivot.add(gltf.scene);
-
-    previewCamera.position.set(0, 0, size * 1.2);
-    previewCamera.near = size * 0.001;
-    previewCamera.far  = size * 100;
-    previewCamera.updateProjectionMatrix();
-  }, (err) => {
-    console.warn('Preview error:', err);
-  });
+    const cam = window._previewCamera;
+    cam.position.set(0, 0, size * 1.2);
+    cam.near = size * 0.001;
+    cam.far  = size * 100;
+    cam.updateProjectionMatrix();
+  }, (err) => console.warn('Preview error:', err));
 }
 
-// ── MapLibre GL JS 地図 ────────────────────────────────────────────────
+// ── MapLibre GL JS ────────────────────────────────────────────────────
 function initMap() {
   map = new maplibregl.Map({
     container: 'map',
@@ -134,12 +121,7 @@ function initMap() {
     center: [parseFloat($('lon').value), parseFloat($('lat').value)],
     zoom: 14,
   });
-
-  map.on('load', () => {
-    placeMarker();
-  });
-
-  // マップクリックで位置をセット
+  map.on('load', placeMarker);
   map.on('click', (e) => {
     $('lon').value = e.lngLat.lng.toFixed(7);
     $('lat').value = e.lngLat.lat.toFixed(7);
@@ -151,158 +133,211 @@ function placeMarker() {
   const lon = parseFloat($('lon').value);
   const lat = parseFloat($('lat').value);
   if (isNaN(lon) || isNaN(lat)) return;
-
   if (marker) {
     marker.setLngLat([lon, lat]);
   } else {
     marker = new maplibregl.Marker({ color: '#6ea8fe', draggable: true })
-      .setLngLat([lon, lat])
-      .addTo(map);
-
+      .setLngLat([lon, lat]).addTo(map);
     marker.on('dragend', () => {
-      const lngLat = marker.getLngLat();
-      $('lon').value = lngLat.lng.toFixed(7);
-      $('lat').value = lngLat.lat.toFixed(7);
+      const ll = marker.getLngLat();
+      $('lon').value = ll.lng.toFixed(7);
+      $('lat').value = ll.lat.toFixed(7);
     });
   }
-
   map.flyTo({ center: [lon, lat], zoom: Math.max(map.getZoom(), 13) });
 }
+['lon', 'lat'].forEach(id => $(id).addEventListener('change', placeMarker));
 
-// 入力フォームの変化で地図マーカーを同期
-['lon', 'lat'].forEach(id => {
-  $(id).addEventListener('change', placeMarker);
-});
-
-// ── GLB メッシュ解析 & チャンク分割 ───────────────────────────────────
+// ── GLB 読み込み → ジオメトリ統合 ────────────────────────────────────
 /**
- * GLB ArrayBuffer を Three.js で読み込み、メッシュをフラット化して返す
- * 各メッシュにワールド変換を適用済み
+ * GLB から全メッシュをフラット化し、マージした結果を返す
+ * @returns {{ geometry: THREE.BufferGeometry, material: THREE.Material }}
  */
-function loadMeshes(arrayBuffer) {
+function loadAndMerge(arrayBuffer) {
   return new Promise((resolve, reject) => {
     const loader = new GLTFLoader();
     loader.parse(arrayBuffer.slice(0), '', (gltf) => {
       gltf.scene.updateWorldMatrix(true, true);
-      const meshes = [];
+
+      const geoms = [];
+      let material = new THREE.MeshStandardMaterial();
+
       gltf.scene.traverse(obj => {
         if (!obj.isMesh) return;
-        // ワールド変換をジオメトリに焼き込む
         const geom = obj.geometry.clone();
         geom.applyMatrix4(obj.matrixWorld);
-        const mat  = obj.material.clone ? obj.material.clone() : obj.material;
-        const flat = new THREE.Mesh(geom, mat);
-        meshes.push(flat);
+        // 必要な attribute のみ残す（mergeGeometries は attribute が一致している必要がある）
+        ['position', 'normal', 'uv'].forEach(name => {
+          if (!geom.attributes[name]) geom.deleteAttribute(name);
+        });
+        // position だけは必須
+        if (!geom.attributes.position) return;
+        geoms.push(geom);
+        if (Array.isArray(obj.material)) material = obj.material[0];
+        else material = obj.material;
       });
-      if (meshes.length === 0) reject(new Error('メッシュが見つかりません'));
-      else resolve(meshes);
+
+      if (geoms.length === 0) return reject(new Error('メッシュが見つかりません'));
+
+      // attribute セットを最小公倍数に揃える
+      const allAttrs = new Set(geoms.flatMap(g => Object.keys(g.attributes)));
+      geoms.forEach(g => {
+        allAttrs.forEach(name => {
+          if (!g.attributes[name]) {
+            // ない attribute はダミーで埋める（mergeGeometries エラー回避）
+            const ref = geoms.find(gg => gg.attributes[name]);
+            if (ref) {
+              const is  = ref.attributes[name].itemSize;
+              const arr = new Float32Array(g.attributes.position.count * is);
+              g.setAttribute(name, new THREE.BufferAttribute(arr, is));
+            }
+          }
+        });
+      });
+
+      const merged = mergeGeometries(geoms, false);
+      if (!merged) return reject(new Error('ジオメトリのマージに失敗しました'));
+      resolve({ geometry: merged, material });
     }, reject);
   });
 }
 
-/** メッシュ配列をラウンドロビンで N チャンクに分割 */
-function splitEvenly(meshes, n) {
-  n = Math.max(1, Math.min(n, meshes.length));
-  const groups = Array.from({ length: n }, () => []);
-  meshes.forEach((m, i) => groups[i % n].push(m));
-  return groups.filter(g => g.length > 0);
+// ── ジオメトリを N 分割（面ベース）────────────────────────────────────
+/**
+ * BufferGeometry を面数で N 等分して返す
+ * インデックス付き・なし両対応
+ */
+function splitGeometryByFaces(geometry, n) {
+  // インデックスがない場合はインデックス付きに変換
+  let geom = geometry.index ? geometry : geometry.toNonIndexed();
+  if (!geom.index) {
+    // toNonIndexed が使えない場合のフォールバック
+    return [geometry];
+  }
+
+  const idxArray   = Array.from(geom.index.array);
+  const totalFaces = idxArray.length / 3;
+  n = Math.max(1, Math.min(n, totalFaces)); // 面数より多くは分割できない
+  const facesPerChunk = Math.ceil(totalFaces / n);
+
+  const chunks = [];
+  for (let ci = 0; ci < n; ci++) {
+    const fStart = ci * facesPerChunk;
+    const fEnd   = Math.min(fStart + facesPerChunk, totalFaces);
+    if (fStart >= totalFaces) break;
+
+    const subIdx = idxArray.slice(fStart * 3, fEnd * 3);
+
+    // 使用頂点の抽出・再マッピング
+    const uniqueVerts = [...new Set(subIdx)].sort((a, b) => a - b);
+    const vmap        = new Map(uniqueVerts.map((vi, ni) => [vi, ni]));
+
+    const chunkGeom = new THREE.BufferGeometry();
+
+    // 各 attribute をコピー
+    for (const [name, attr] of Object.entries(geom.attributes)) {
+      const is  = attr.itemSize;
+      const src = attr.array;
+      const dst = new (src.constructor)(uniqueVerts.length * is);
+      uniqueVerts.forEach((vi, ni) => {
+        for (let j = 0; j < is; j++) dst[ni * is + j] = src[vi * is + j];
+      });
+      chunkGeom.setAttribute(name, new THREE.BufferAttribute(dst, is, attr.normalized));
+    }
+
+    // 新しいインデックス
+    const newIdx = new Uint32Array(subIdx.length);
+    subIdx.forEach((vi, i) => { newIdx[i] = vmap.get(vi); });
+    chunkGeom.setIndex(new THREE.BufferAttribute(newIdx, 1));
+
+    chunks.push(chunkGeom);
+  }
+  return chunks;
 }
 
-/** Three.js Mesh 配列のバウンディングボックス */
-function computeBounds(meshes) {
-  const box = new THREE.Box3();
-  meshes.forEach(m => box.expandByObject(m));
+/** BufferGeometry のバウンディングボックス */
+function boundsFromGeometry(geom) {
+  geom.computeBoundingBox();
+  const b = geom.boundingBox;
   return {
-    min: [box.min.x, box.min.y, box.min.z],
-    max: [box.max.x, box.max.y, box.max.z],
+    min: [b.min.x, b.min.y, b.min.z],
+    max: [b.max.x, b.max.y, b.max.z],
   };
 }
 
-/** Mesh 配列 → GLB ArrayBuffer (GLTFExporter) */
-function exportGroupToGLB(meshes) {
+/** Geometry + Material → GLB ArrayBuffer */
+function exportGeomToGLB(geometry, material) {
   return new Promise((resolve, reject) => {
+    const mesh  = new THREE.Mesh(geometry, material);
     const scene = new THREE.Scene();
-    meshes.forEach((m, i) => {
-      const node = m.clone();
-      node.name = `mesh_${i}`;
-      scene.add(node);
-    });
-    const exporter = new GLTFExporter();
-    exporter.parse(scene, (glb) => resolve(glb), reject, { binary: true });
+    scene.add(mesh);
+    new GLTFExporter().parse(scene, glb => resolve(glb), reject, { binary: true });
   });
 }
 
 // ── 変換実行 ──────────────────────────────────────────────────────────
 $('convertBtn').addEventListener('click', async () => {
-  if (!loadedGLB) {
-    alert('GLBファイルを選択してください。');
-    return;
-  }
+  if (!loadedGLB) { alert('GLBファイルを選択してください。'); return; }
 
   const btn = $('convertBtn');
   btn.disabled = true;
   setProgress('GLBを読み込み中…');
 
   try {
-    // パラメータ収集
     const params = {
-      lon:           parseFloat($('lon').value),
-      lat:           parseFloat($('lat').value),
-      height:        parseFloat($('height').value) || 0,
-      heading:       parseFloat($('heading').value) || 0,
-      pitch:         parseFloat($('pitch').value)   || 0,
-      roll:          parseFloat($('roll').value)    || 0,
-      chunks:        Math.max(1, parseInt($('chunks').value) || 3),
+      lon:            parseFloat($('lon').value),
+      lat:            parseFloat($('lat').value),
+      height:         parseFloat($('height').value)        || 0,
+      heading:        parseFloat($('heading').value)       || 0,
+      pitch:          parseFloat($('pitch').value)         || 0,
+      roll:           parseFloat($('roll').value)          || 0,
+      chunks:         Math.max(1, parseInt($('chunks').value) || 3),
       geometricError: parseFloat($('geometricError').value) || 200,
-      refine:        $('refine').value,
-      contentFormat: 'glb',
+      refine:         $('refine').value,
+      contentFormat:  'glb',
     };
 
-    setProgress(`メッシュを解析中…`);
-    const meshes = await loadMeshes(loadedGLB);
-    const groups = splitEvenly(meshes, params.chunks);
+    setProgress('ジオメトリをマージ中…');
+    const { geometry, material } = await loadAndMerge(loadedGLB);
 
-    setProgress(`${groups.length} チャンクに分割中…`);
+    setProgress(`${params.chunks} チャンクに分割中…`);
+    const geomChunks = splitGeometryByFaces(geometry, params.chunks);
 
-    const zip = new JSZip();
+    const zip        = new JSZip();
     const chunkInfos = [];
 
-    for (let i = 0; i < groups.length; i++) {
-      setProgress(`チャンク ${i + 1} / ${groups.length} を書き出し中…`);
-      const group  = groups[i];
-      const bounds = computeBounds(group);
-      const glb    = await exportGroupToGLB(group);
+    for (let i = 0; i < geomChunks.length; i++) {
+      setProgress(`チャンク ${i + 1} / ${geomChunks.length} を書き出し中…`);
+      const geom   = geomChunks[i];
+      const bounds = boundsFromGeometry(geom);
+      const glb    = await exportGeomToGLB(geom, material);
       const fname  = `chunk_${String(i).padStart(3, '0')}.glb`;
       zip.folder('tiles_src').file(fname, glb);
       chunkInfos.push({
         index:     i,
-        meshCount: group.length,
+        meshCount: 1,
         bounds,
-        uri:       `tiles_src/${fname}`,
+        uri: `tiles_src/${fname}`,
       });
     }
 
     setProgress('tileset.json を生成中…');
     const tileset = buildTileset(chunkInfos, params);
     zip.file('tileset.json', JSON.stringify(tileset, null, 2));
+    zip.file('build_report.json', JSON.stringify(buildReport(loadedFileName, chunkInfos, params), null, 2));
 
-    const report = buildReport(loadedFileName, chunkInfos, params);
-    zip.file('build_report.json', JSON.stringify(report, null, 2));
-
-    // プレビュー表示
     $('tilesetPreview').textContent = JSON.stringify(tileset, null, 2);
 
     setProgress('ZIP を生成中…');
-    const blob = await zip.generateAsync({ type: 'blob' });
-
-    // ダウンロード
-    const a = document.createElement('a');
-    const baseName = loadedFileName.replace(/\.glb$/i, '');
-    a.href = URL.createObjectURL(blob);
-    a.download = `${baseName}_3dtiles.zip`;
+    const blob    = await zip.generateAsync({ type: 'blob' });
+    const a       = document.createElement('a');
+    const base    = loadedFileName.replace(/\.glb$/i, '');
+    a.href        = URL.createObjectURL(blob);
+    a.download    = `${base}_3dtiles.zip`;
     a.click();
 
-    setProgress(`完了: ${groups.length} チャンク / tileset.json + build_report.json`, true);
+    const totalFaces = geomChunks.reduce((s, g) => s + (g.index ? g.index.count / 3 : g.attributes.position.count / 3), 0);
+    setProgress(`完了: ${geomChunks.length} チャンク / 合計 ${Math.round(totalFaces).toLocaleString()} 面`, true);
     $('downloadSection').style.display = '';
   } catch (err) {
     console.error(err);

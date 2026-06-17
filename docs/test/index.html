@@ -173,8 +173,9 @@
     .ok-text  { color: var(--ok); }
     .warn-text { color: var(--warn); }
 
-    /* Guide page */
+    /* Guide / Tool page — 表示切替は JS で管理 */
     #page-guide { display: none; }
+    #page-tool  { display: block; }
 
     @media (max-width: 960px) {
       .tool-grid { grid-template-columns: 1fr; }
@@ -204,66 +205,74 @@
     <div class="card">
       <h2>このツールについて</h2>
       <p class="note">
-        GLBファイルをブラウザ上でメッシュ単位に分割し、<code>root.transform</code> 付きの
-        <code>tileset.json</code> を生成する Web ツールです。<br>
-        サーバー不要・GitHub Pages でそのまま動作します。
-        <span class="warn-text">B3DM 変換は対象外</span>です（Node.js 側で別途実行してください）。
+        GLB ファイルをブラウザ上で三角形単位に分割し、地理参照付き <code>tileset.json</code> と
+        chunk GLB を ZIP で出力する Web ツールです。<br>
+        <span class="ok-text">サーバー不要・GitHub Pages でそのまま動作します。</span><br>
+        出力は <strong>3D Tiles 1.1 形式（GLB 直参照）</strong> です。B3DM ラッパーは不要です。
       </p>
     </div>
 
     <div class="card">
-      <h2>前提条件</h2>
+      <h2>基本的な使い方</h2>
       <ul class="note">
-        <li>モダンブラウザ（Chrome / Edge / Firefox 最新版）</li>
-        <li>GLBファイルが手元にあること</li>
-        <li>配置したい緯度・経度・高さを事前に把握していること</li>
-        <li>B3DM化が必要な場合は Node.js + <code>npx 3d-tiles-tools</code> を別途用意</li>
-      </ul>
-    </div>
-
-    <div class="card">
-      <h2>使い方</h2>
-      <ul class="note">
-        <li><strong>1. GLB を選択</strong> — ファイルを選ぶかドロップする</li>
-        <li><strong>2. チャンク数を設定</strong> — メッシュ数以下を目安に設定</li>
-        <li><strong>3. 地図で位置を調整</strong> — マーカーをドラッグ、またはフォームに直接入力</li>
-        <li><strong>4. Heading / Pitch / Roll を入力</strong> — 向きを手動で指定</li>
-        <li><strong>5. 「変換 &amp; ZIP ダウンロード」ボタンを押す</strong></li>
-        <li>ZIP に <code>tiles_src/*.glb</code> と <code>tileset.json</code> が含まれます</li>
+        <li><strong>① GLB を選択</strong> — ドロップゾーンにファイルをドラッグ、またはクリックして選択</li>
+        <li><strong>② 分割チャンク数を設定</strong> — 三角形数を均等に N 分割します。1 メッシュでも分割できます</li>
+        <li><strong>③ 地図で配置位置を確認・調整</strong> — マーカーをドラッグするか、経度・緯度を直接入力</li>
+        <li><strong>④ 高さ・向きを入力</strong> — 高さ（m）、Heading / Pitch / Roll を手動入力</li>
+        <li><strong>⑤「変換 &amp; ZIP ダウンロード」を押す</strong> — ZIP が自動ダウンロードされます</li>
       </ul>
     </div>
 
     <div class="card">
       <h2>出力ファイル構成</h2>
-      <pre>output.zip
+      <pre>(GLBファイル名)_3dtiles.zip
   tiles_src/
-    chunk_000.glb
+    chunk_000.glb   ← 分割された GLB チャンク
     chunk_001.glb
+    chunk_002.glb
     ...
-  tileset.json
-  build_report.json</pre>
+  tileset.json      ← 3D Tiles エントリーポイント
+  build_report.json ← 変換パラメータの記録</pre>
+      <p class="note" style="margin-top:8px;">
+        <code>tileset.json</code> の <code>root.transform</code> に ECEF 変換行列が入ります。
+        CesiumJS・Cesium ion・plateau-terria などモダンな 3D Tiles ビューアで読み込めます。
+      </p>
+    </div>
+
+    <div class="card">
+      <h2>設定項目の説明</h2>
+      <ul class="note">
+        <li><strong>分割チャンク数</strong>: 三角形数を均等に何分割するか。ファイルが大きい場合は 3〜10 程度を目安に。</li>
+        <li><strong>幾何誤差 (geometricError)</strong>: ビューアがこのタイルを表示するかどうかの距離閾値（メートル）。建物スケールは 50〜200、都市スケールは 500 以上が目安。通常はデフォルト（200）のままで問題ありません。</li>
+        <li><strong>精緻化モード (refine)</strong>: ADD＝子タイルを親タイルに重ねて追加表示、REPLACE＝子タイルで親タイルを差し替え。今回は全チャンクが同じ詳細度のため、どちらでも見た目はほぼ同じです。</li>
+        <li><strong>経度・緯度</strong>: モデルを配置する地点の座標。地図のマーカーをドラッグしても変更できます。</li>
+        <li><strong>高さ (m)</strong>: 地面からの高さ。建物の場合は 0 か地面の標高を入力。</li>
+        <li><strong>Heading</strong>: 北を 0° として時計回りの回転角。モデルの正面方向を調整します。</li>
+        <li><strong>Pitch</strong>: 前後の傾き。通常は 0。</li>
+        <li><strong>Roll</strong>: 左右の傾き。通常は 0。</li>
+      </ul>
     </div>
 
     <div class="card">
       <h2>注意事項</h2>
       <ul class="note">
-        <li>位置・向きはすべて <span class="warn-text">手動調整値</span> です。自動推定は行いません。</li>
-        <li>チャンク分割はラウンドロビン（Python版と同一アルゴリズム）です。</li>
-        <li>B3DM 化はこのツールでは行いません。必要な場合は <code>npx 3d-tiles-tools glbToB3dm</code> を使ってください。</li>
-        <li>大きなGLBファイルはブラウザのメモリを消費します。</li>
+        <li>位置・向きはすべて <span class="warn-text">手動入力値</span> です。自動推定は行いません。</li>
+        <li>大きな GLB（目安：100MB 超）はブラウザのメモリを圧迫することがあります。</li>
+        <li>B3DM 変換はこのツールでは行いません。必要な場合は ZIP 解凍後に <code>npx 3d-tiles-tools glbToB3dm</code> を別途実行してください。</li>
+        <li>テクスチャ付き GLB の場合、マルチマテリアルが単一マテリアルに統合されることがあります。</li>
       </ul>
     </div>
 
     <div class="card">
-      <h2>用語</h2>
+      <h2>用語集</h2>
       <ul class="note">
-        <li><strong>チャンク</strong>: GLBを分割した部分ファイル（<code>chunk_000.glb</code> など）</li>
-        <li><strong>tileset.json</strong>: 3D Tiles のエントリーポイント。<code>root.transform</code> に地理座標系への変換行列が入ります。</li>
-        <li><strong>ECEF</strong>: 地球中心・地球固定座標系。3D Tiles の transform はこの座標系で指定します。</li>
-        <li><strong>ENU</strong>: 東・北・上 の局所座標系。ECEF との変換に使います。</li>
-        <li><strong>Heading</strong>: 北を基準とした回転角（Z軸回転）</li>
-        <li><strong>Pitch</strong>: 前傾き（Y軸回転）</li>
-        <li><strong>Roll</strong>: 横傾き（X軸回転）</li>
+        <li><strong>3D Tiles</strong>: 大規模 3D 地理空間データの配信・表示のためのオープン規格（OGC標準）</li>
+        <li><strong>tileset.json</strong>: 3D Tiles のエントリーポイントファイル。タイル構造・変換行列・ファイル参照を記述します</li>
+        <li><strong>チャンク (chunk)</strong>: 元の GLB を分割した部分ファイル（<code>chunk_000.glb</code> など）</li>
+        <li><strong>root.transform</strong>: モデルのローカル座標系を地球上の位置（ECEF）に変換する 4×4 行列</li>
+        <li><strong>ECEF</strong>: 地球中心・地球固定座標系。3D Tiles の transform はこの座標で指定します</li>
+        <li><strong>ENU</strong>: East-North-Up。配置地点を基準とした局所座標系。ECEF との橋渡しに使います</li>
+        <li><strong>Heading / Pitch / Roll</strong>: モデルの向きを表す 3 軸の回転角。それぞれ Z・Y・X 軸回転に対応します</li>
       </ul>
     </div>
 
@@ -292,22 +301,24 @@
           <h2>出力設定</h2>
           <div class="row">
             <div>
-              <label for="chunks">チャンク数</label>
+              <label for="chunks">分割チャンク数</label>
               <input id="chunks" type="number" min="1" step="1" value="3" />
+              <p class="note" style="margin-top:5px;">GLB を何分割するか。三角形数を均等に分けます。</p>
             </div>
             <div>
-              <label for="geometricError">geometricError</label>
+              <label for="geometricError">幾何誤差 (geometricError)</label>
               <input id="geometricError" type="number" step="any" value="200" />
+              <p class="note" style="margin-top:5px;">「どの距離まで近づいたら表示するか」の目安（メートル）。建物スケールなら 50〜200 が目安。通常はそのままでOK。</p>
             </div>
           </div>
           <div class="row-full">
-            <label for="refine">refine モード</label>
+            <label for="refine">精緻化モード (refine)</label>
             <select id="refine">
-              <option value="ADD">ADD</option>
-              <option value="REPLACE">REPLACE</option>
+              <option value="ADD">ADD — 子タイルを追加表示（重ねる）</option>
+              <option value="REPLACE">REPLACE — 子タイルに切り替え（差し替える）</option>
             </select>
+            <p class="note" style="margin-top:5px;">今回は全チャンクが同じ詳細度のため、どちらを選んでも見た目はほぼ同じです。</p>
           </div>
-          <p class="note">チャンク数はメッシュ数以下に設定してください。</p>
         </div>
 
         <!-- 位置入力 -->
