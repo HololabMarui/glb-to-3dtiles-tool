@@ -327,8 +327,6 @@ $('convertBtn').addEventListener('click', async () => {
     zip.file('tileset.json', JSON.stringify(tileset, null, 2));
     zip.file('build_report.json', JSON.stringify(buildReport(loadedFileName, chunkInfos, params), null, 2));
 
-    $('tilesetPreview').textContent = JSON.stringify(tileset, null, 2);
-
     setProgress('ZIP を生成中…');
     const blob    = await zip.generateAsync({ type: 'blob' });
     const a       = document.createElement('a');
@@ -339,7 +337,6 @@ $('convertBtn').addEventListener('click', async () => {
 
     const totalFaces = geomChunks.reduce((s, g) => s + (g.index ? g.index.count / 3 : g.attributes.position.count / 3), 0);
     setProgress(`完了: ${geomChunks.length} チャンク / 合計 ${Math.round(totalFaces).toLocaleString()} 面`, true);
-    $('downloadSection').style.display = '';
   } catch (err) {
     console.error(err);
     setProgress(`エラー: ${err.message}`, false, true);
