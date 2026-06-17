@@ -68,9 +68,13 @@ function rotZ(rad) {
   return [[c,-s,0],[s,c,0],[0,0,1]];
 }
 
-/** HPR 回転行列: rot_z(h) @ rot_y(p) @ rot_x(r) */
+/**
+ * HPR 回転行列
+ * Heading は Cesium 準拠でコンパス方向（北=0°, 時計回り正）
+ * → rotZ に負号を付けて反時計回りの数学正方向と合わせる
+ */
 function hprRotation(headingDeg, pitchDeg, rollDeg) {
-  return mat3Mul(mat3Mul(rotZ(deg2rad(headingDeg)), rotY(deg2rad(pitchDeg))), rotX(deg2rad(rollDeg)));
+  return mat3Mul(mat3Mul(rotZ(-deg2rad(headingDeg)), rotY(deg2rad(pitchDeg))), rotX(deg2rad(rollDeg)));
 }
 
 /**
