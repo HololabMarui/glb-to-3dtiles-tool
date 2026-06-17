@@ -79,13 +79,18 @@ function hprRotation(headingDeg, pitchDeg, rollDeg) {
 
 /**
  * 3D Tiles root.transform を生成する (16要素 column-major 配列)
- * Python の make_transform() と完全互換
+ *
+ * GLB は Y-up 座標系（+Y=上, -Z=前）。
+ * 3D Tiles ENU は Z-up（+Z=上, +Y=北）。
+ * rotX(+90°) を最内側に適用して Y-up → Z-up を変換する。
+ * これにより Heading=0 でモデルが直立・北向きになる。
  */
 function makeTransform(lonDeg, latDeg, height, headingDeg, pitchDeg, rollDeg) {
   const t = ecefFromLonLatHeight(lonDeg, latDeg, height);
-  const rEnu = enuAxes(lonDeg, latDeg);
+  const rEnu   = enuAxes(lonDeg, latDeg);
   const rLocal = hprRotation(headingDeg, pitchDeg, rollDeg);
-  const r = mat3Mul(rEnu, rLocal);
+  const rAxisFix = rotX(Math.PI / 2); // GLB Y-up → ENU Z-up 変換
+  const r = mat3Mul(mat3Mul(rEnu, rLocal), rAxisFix);
 
   // 4x4 row-major: m[:3,:3]=r, m[:3,3]=translation
   // m.T.reshape(-1) → column-major 16 values
