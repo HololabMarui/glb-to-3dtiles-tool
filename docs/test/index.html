@@ -83,14 +83,19 @@
     .stack { display: grid; gap: 16px; }
 
     /* Layout */
-    .tool-grid {
+    /* ツール画面レイアウト */
+    .viewer-grid {
       display: grid;
-      grid-template-columns: 400px 1fr;
+      grid-template-columns: 1fr 1fr;
+      gap: 18px;
+      margin-bottom: 18px;
+    }
+    .controls-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
       gap: 18px;
       align-items: start;
     }
-    .left-col { display: grid; gap: 16px; }
-    .right-col { display: grid; gap: 16px; }
 
     /* Form */
     .row   { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; }
@@ -132,7 +137,7 @@
 
     /* Map */
     #map {
-      width: 100%; height: 380px;
+      width: 100%; height: 360px;
       border-radius: 14px; overflow: hidden;
       border: 1px solid var(--border);
     }
@@ -140,10 +145,12 @@
 
     /* 3D Preview */
     #previewCanvas {
-      width: 100%; height: 220px;
+      width: 100%; height: 360px;
       border-radius: 12px;
       display: block;
       background: #0a1022;
+      /* ホイール操作でページがスクロールしないよう touch-action を無効化 */
+      touch-action: none;
     }
 
     /* Status */
@@ -218,7 +225,7 @@
     #page-tool  { display: block; }
 
     @media (max-width: 960px) {
-      .tool-grid { grid-template-columns: 1fr; }
+      .viewer-grid, .controls-grid { grid-template-columns: 1fr; }
       .row, .row-3 { grid-template-columns: 1fr; }
     }
   </style>
@@ -284,7 +291,7 @@
       <ul class="note">
         <li><strong>分割チャンク数</strong>: 三角形数を均等に何分割するか。ファイルが大きい場合は 3〜10 程度を目安に。</li>
         <li><strong>幾何誤差 (geometricError)</strong>: ビューアがこのタイルを表示するかどうかの距離閾値（メートル）。建物スケールは 50〜200、都市スケールは 500 以上が目安。通常はデフォルト（200）のままで問題ありません。</li>
-        <li><strong>精緻化モード (refine)</strong>: ADD＝子タイルを親タイルに重ねて追加表示、REPLACE＝子タイルで親タイルを差し替え。今回は全チャンクが同じ詳細度のため、どちらでも見た目はほぼ同じです。</li>
+        <li><strong>精緻化モード (refine)</strong>: ADD＝子タイルを親タイルに重ねて追加表示、REPLACE＝子タイルで親タイルを差し替え。</li>
         <li><strong>経度・緯度</strong>: モデルを配置する地点の座標。地図のマーカーをドラッグしても変更できます。</li>
         <li><strong>高さ (m)</strong>: 地面からの高さ。建物の場合は 0 か地面の標高を入力。</li>
         <li><strong>Heading</strong>: 北を 0° として時計回りの回転角。モデルの正面方向を調整します。</li>
@@ -320,120 +327,99 @@
 
   <!-- ── 変換ツールページ ── -->
   <section id="page-tool">
-    <div class="tool-grid">
 
-      <!-- 左カラム: 設定フォーム -->
-      <div class="left-col">
+    <!-- 上段: 地図 | GLBプレビュー -->
+    <div class="viewer-grid">
+      <div class="card">
+        <h2>配置位置（地図）</h2>
+        <div id="map"></div>
+        <p class="map-note">マーカーをドラッグするか、地図をクリックして位置をセット。経度・緯度フォームの変更も地図に反映されます。</p>
+      </div>
+      <div class="card">
+        <h2>GLB プレビュー</h2>
+        <canvas id="previewCanvas"></canvas>
+        <p class="note" style="margin-top:6px;">ドラッグで回転、ホイールでズーム（スクロールは無効化）</p>
+      </div>
+    </div>
 
-        <!-- GLB 選択 -->
-        <div class="card">
-          <h2>GLBファイル選択</h2>
-          <div class="drop-zone" id="dropZone">
-            <input type="file" id="glbInput" accept=".glb" />
-            <div class="icon">📦</div>
-            <div class="note">クリックまたはドラッグ&amp;ドロップで GLB を選択</div>
-            <div id="glbStatus" class="status" style="margin-top:8px;">未選択</div>
-          </div>
+    <!-- 下段: 操作系 3列 -->
+    <div class="controls-grid">
+
+      <!-- GLB選択 -->
+      <div class="card">
+        <h2>GLBファイル選択</h2>
+        <div class="drop-zone" id="dropZone">
+          <input type="file" id="glbInput" accept=".glb" />
+          <div class="icon">📦</div>
+          <div class="note">クリックまたはドラッグ&amp;ドロップで GLB を選択</div>
+          <div id="glbStatus" class="status" style="margin-top:8px;">未選択</div>
         </div>
+      </div>
 
-        <!-- 出力 & チャンク設定 -->
-        <div class="card">
-          <h2>出力設定</h2>
-          <div class="row">
-            <div>
-              <label for="chunks">
-                <span class="tip">
-                  分割チャンク数
-                  <span class="tip-icon">?</span>
-                  <span class="tip-body">GLB を何分割するか。三角形数を均等に分けます。1メッシュのGLBでも指定した数に分割できます。ファイルが大きい場合は 3〜10 程度が目安です。</span>
-                </span>
-              </label>
-              <input id="chunks" type="number" min="1" step="1" value="3" />
-            </div>
-            <div>
-              <label for="geometricError">
-                <span class="tip">
-                  幾何誤差 (geometricError)
-                  <span class="tip-icon">?</span>
-                  <span class="tip-body">ビューアがこのタイルを表示するかどうかの距離閾値（メートル）。値が大きいほど遠くから表示されます。建物スケールは 50〜200、都市スケールは 500 以上が目安。通常はデフォルト（200）のままで問題ありません。</span>
-                </span>
-              </label>
-              <input id="geometricError" type="number" step="any" value="200" />
-            </div>
-          </div>
-          <div class="row-full">
-            <label for="refine">
-              <span class="tip">
-                精緻化モード (refine)
-                <span class="tip-icon">?</span>
-                <span class="tip-body">ADD：子タイルを親タイルに重ねて追加表示します。REPLACE：子タイルが読み込まれたら親タイルを非表示にします。今回は全チャンクが同じ詳細度のため、どちらを選んでも見た目はほぼ同じです。</span>
+      <!-- 出力設定 + 位置・向き -->
+      <div class="card">
+        <h2>出力設定</h2>
+        <div class="row">
+          <div>
+            <label for="chunks">
+              <span class="tip">分割チャンク数<span class="tip-icon">?</span>
+                <span class="tip-body">GLB を何分割するか。三角形数を均等に分けます。1メッシュのGLBでも指定した数に分割できます。ファイルが大きい場合は 3〜10 程度が目安です。</span>
               </span>
             </label>
-            <select id="refine">
-              <option value="ADD">ADD — 子タイルを追加表示（重ねる）</option>
-              <option value="REPLACE">REPLACE — 子タイルに切り替え（差し替える）</option>
-            </select>
+            <input id="chunks" type="number" min="1" step="1" value="3" />
+          </div>
+          <div>
+            <label for="geometricError">
+              <span class="tip">幾何誤差 (geometricError)<span class="tip-icon">?</span>
+                <span class="tip-body">ビューアがこのタイルを表示するかどうかの距離閾値（メートル）。値が大きいほど遠くから表示されます。建物スケールは 50〜200、都市スケールは 500 以上が目安。通常はデフォルト（200）のままで問題ありません。</span>
+              </span>
+            </label>
+            <input id="geometricError" type="number" step="any" value="200" />
           </div>
         </div>
-
-        <!-- 位置入力 -->
-        <div class="card">
-          <h2>位置・向き（手動調整値）</h2>
-          <p class="note warn-text" style="margin-bottom:12px;">
-            ※ 以下はすべて手動入力値です。自動推定は行いません。
-          </p>
-          <div class="row-3">
-            <div><label for="lon">経度 (°)</label><input id="lon" type="number" step="any" value="139.767125" /></div>
-            <div><label for="lat">緯度 (°)</label><input id="lat" type="number" step="any" value="35.681236"  /></div>
-            <div><label for="height">高さ (m)</label><input id="height" type="number" step="any" value="50" /></div>
-          </div>
-          <div class="row-3">
-            <div><label for="heading">Heading (°)</label><input id="heading" type="number" step="any" value="0" /></div>
-            <div><label for="pitch">Pitch (°)</label>  <input id="pitch"   type="number" step="any" value="0" /></div>
-            <div><label for="roll">Roll (°)</label>    <input id="roll"    type="number" step="any" value="0" /></div>
-          </div>
+        <div class="row-full">
+          <label for="refine">
+            <span class="tip">精緻化モード (refine)<span class="tip-icon">?</span>
+              <span class="tip-body">ADD：子タイルを親タイルに重ねて追加表示します。REPLACE：子タイルが読み込まれたら親タイルを非表示にします。</span>
+            </span>
+          </label>
+          <select id="refine">
+            <option value="ADD">ADD — 子タイルを追加表示（重ねる）</option>
+            <option value="REPLACE">REPLACE — 子タイルに切り替え（差し替える）</option>
+          </select>
         </div>
+      </div>
 
-        <!-- 変換ボタン -->
-        <div class="card">
-          <h2>変換 &amp; ダウンロード</h2>
-          <div class="buttons">
-            <button id="convertBtn" class="btn btn-primary" type="button">
-              ▶ 変換 &amp; ZIP ダウンロード
-            </button>
-          </div>
+      <!-- 位置・向き + 変換ボタン -->
+      <div class="card">
+        <h2>位置・向き（手動調整値）</h2>
+        <p class="note warn-text" style="margin-bottom:10px;">※ 自動推定は行いません。手動で入力してください。</p>
+        <div class="row-3">
+          <div><label for="lon">経度 (°)</label><input id="lon" type="number" step="any" value="139.767125" /></div>
+          <div><label for="lat">緯度 (°)</label><input id="lat" type="number" step="any" value="35.681236"  /></div>
+          <div><label for="height">高さ (m)</label><input id="height" type="number" step="any" value="50" /></div>
+        </div>
+        <div class="row-3">
+          <div><label for="heading">Heading (°)</label><input id="heading" type="number" step="any" value="0" /></div>
+          <div><label for="pitch">Pitch (°)</label>    <input id="pitch"   type="number" step="any" value="0" /></div>
+          <div><label for="roll">Roll (°)</label>      <input id="roll"    type="number" step="any" value="0" /></div>
+        </div>
+        <div style="margin-top:14px;">
+          <button id="convertBtn" class="btn btn-primary" type="button" style="width:100%;">
+            ▶ 変換 &amp; ZIP ダウンロード
+          </button>
           <div id="progressMsg" class="status" style="margin-top:10px;"></div>
         </div>
+      </div>
 
-      </div><!-- /left-col -->
+    </div><!-- /controls-grid -->
 
-      <!-- 右カラム: 地図 + プレビュー + 出力確認 -->
-      <div class="right-col">
+    <!-- tileset.json プレビュー -->
+    <div class="card" id="downloadSection" style="display:none; margin-top:18px;">
+      <h2>生成された tileset.json</h2>
+      <pre id="tilesetPreview"></pre>
+    </div>
 
-        <!-- 地図 -->
-        <div class="card">
-          <h2>配置位置（地図）</h2>
-          <div id="map"></div>
-          <p class="map-note">マーカーをドラッグするか、地図をクリックして位置をセット。<br>
-          経度・緯度フォームの変更も地図に反映されます。</p>
-        </div>
-
-        <!-- 3D プレビュー -->
-        <div class="card">
-          <h2>GLB プレビュー</h2>
-          <canvas id="previewCanvas"></canvas>
-          <p class="note" style="margin-top:6px;">ドラッグで回転、ホイールでズーム</p>
-        </div>
-
-        <!-- tileset.json プレビュー -->
-        <div class="card" id="downloadSection" style="display:none;">
-          <h2>生成された tileset.json</h2>
-          <pre id="tilesetPreview"></pre>
-        </div>
-
-      </div><!-- /right-col -->
-
-    </div><!-- /tool-grid -->
   </section>
 
 </div><!-- /wrap -->

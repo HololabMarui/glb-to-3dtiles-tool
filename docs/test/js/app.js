@@ -81,8 +81,9 @@ function initPreview() {
     pivot.rotation.x = THREE.MathUtils.degToRad(rotX);
   });
   canvas.addEventListener('wheel', e => {
+    e.preventDefault(); // ページスクロールを抑制
     camera.position.z *= 1 + e.deltaY * 0.001;
-  }, { passive: true });
+  }, { passive: false });
 
   window._previewCamera = camera;
 
