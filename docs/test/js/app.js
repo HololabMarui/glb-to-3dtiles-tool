@@ -8,10 +8,10 @@
  */
 import { buildTileset, buildReport } from './georef.js';
 
-// ── Three.js import (ESM CDN) ──────────────────────────────────────────
-import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js';
-import { GLTFLoader }   from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/loaders/GLTFLoader.js';
-import { GLTFExporter } from 'https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/exporters/GLTFExporter.js';
+// ── Three.js import (importmap で 'three' → CDN に解決される) ─────────
+import * as THREE from 'three';
+import { GLTFLoader }   from 'three/addons/loaders/GLTFLoader.js';
+import { GLTFExporter } from 'three/addons/exporters/GLTFExporter.js';
 
 // ── DOM helpers ────────────────────────────────────────────────────────
 const $ = (id) => document.getElementById(id);

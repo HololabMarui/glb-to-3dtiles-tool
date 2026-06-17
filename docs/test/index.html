@@ -5,6 +5,16 @@
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GLB → 3D Tiles 変換ツール</title>
 
+  <!-- Import map: 'three' ベアスペシファイアをブラウザで解決するために必要 -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.165.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.165.0/examples/jsm/"
+    }
+  }
+  </script>
+
   <!-- MapLibre GL JS -->
   <link rel="stylesheet" href="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.css" />
   <script src="https://unpkg.com/maplibre-gl@4.5.0/dist/maplibre-gl.js"></script>
